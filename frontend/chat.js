@@ -200,26 +200,83 @@ class ChatApp {
     }
     
     async playMessageActions(actions) {
+        let currentMessageDiv = null;
+
         for (const action of actions) {
-            // Wait for delay (simulates typing time)
+            // Wait for delay
             if (action.delay > 0) {
                 await this.sleep(action.delay * 1000);
             }
-            
-            if (action.type === 'send') {
-                this.addMessage('assistant', action.text);
-            } else if (action.type === 'recall') {
-                // Find last assistant message and mark as recalled
-                const messages = this.messagesDiv.querySelectorAll('.message.assistant');
-                if (messages.length > 0) {
-                    const lastMessage = messages[messages.length - 1];
-                    lastMessage.classList.add('recalled');
-                    
-                    // Wait a bit then send corrected version
-                    await this.sleep(500);
-                    this.addMessage('assistant', action.text);
-                }
+
+            switch (action.type) {
+                case 'typing_start':
+                    this.showTyping();
+                    break;
+
+                case 'typing_end':
+                    this.hideTyping();
+                    break;
+
+                case 'pause':
+                    // Just wait (delay already handled above)
+                    break;
+
+                case 'send':
+                    // Create message with typing animation
+                    currentMessageDiv = await this.addMessageWithTyping(
+                        'assistant',
+                        action.text,
+                        action.typing_speed || 0.05,
+                        action.metadata
+                    );
+                    break;
+
+                case 'recall':
+                    // Mark last message as recalled
+                    if (currentMessageDiv) {
+                        currentMessageDiv.classList.add('recalled');
+                        await this.sleep(this.config.recall_delay || 500);
+                    }
+
+                    // Send corrected version
+                    currentMessageDiv = await this.addMessageWithTyping(
+                        'assistant',
+                        action.text,
+                        action.typing_speed || 0.05,
+                        action.metadata
+                    );
+                    break;
             }
+        }
+    }
+
+    async addMessageWithTyping(role, content, typingSpeed = 0.05, metadata = null) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${role}`;
+
+        // Add emotion class if available
+        if (metadata && metadata.emotion) {
+            messageDiv.classList.add(`emotion-${metadata.emotion}`);
+        }
+
+        this.messagesDiv.appendChild(messageDiv);
+        this.scrollToBottom();
+
+        // Typing animation
+        await this.typeText(messageDiv, content, typingSpeed);
+
+        return messageDiv;
+    }
+
+    async typeText(element, text, speed) {
+        element.textContent = '';
+
+        for (let i = 0; i < text.length; i++) {
+            element.textContent += text[i];
+            this.scrollToBottom();
+
+            // Wait between characters
+            await this.sleep(speed * 1000);
         }
     }
     
