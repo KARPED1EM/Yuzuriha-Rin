@@ -28,7 +28,7 @@ class BehaviorSettings(BaseModel):
 class ChatRequest(BaseModel):
     llm_config: LLMConfig
     messages: List[ChatMessage]
-    character_name: str = "Rie"
+    character_name: str = "Rin"
     conversation_id: str = "default"
     behavior_settings: Optional[BehaviorSettings] = None
 

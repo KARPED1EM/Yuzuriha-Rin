@@ -2,7 +2,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    app_name: str = "Rie Virtual Chat"
+    app_name: str = "Yuzuriha Rin Virtual Chat"
     debug: bool = True
     cors_origins: list = ["*"]
     

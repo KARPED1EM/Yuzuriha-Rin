@@ -31,7 +31,7 @@ class LLMClient:
         self.config = config
         self.client = httpx.AsyncClient(timeout=60.0)
 
-    async def chat(self, messages: List[ChatMessage], character_name: str = "Rie") -> LLMStructuredResponse:
+    async def chat(self, messages: List[ChatMessage], character_name: str = "Rin") -> LLMStructuredResponse:
         if self.config.provider == "openai":
             raw = await self._openai_chat(messages, character_name)
         elif self.config.provider == "anthropic":
@@ -153,7 +153,7 @@ class LLMClient:
         ]
 
     def _build_system_block(self, character_name: str) -> str:
-        persona_name = character_name or "Rie"
+        persona_name = character_name or "Rin"
         persona_line = ""
         if self.config.system_prompt:
             persona_line = f"\n角色设定：{self.config.system_prompt.strip()}"

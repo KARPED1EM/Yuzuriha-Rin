@@ -7,7 +7,7 @@ class ChatApp {
         this.isProcessing = false;
         this.avatarPaths = {
             user: "/static/assets/avatar_user.png",
-            assistant: "/static/assets/avatar_rie.png"
+            assistant: "/static/assets/avatar_rin.png"
         };
         this.emotionPalette = {
             neutral: { h: 155, s: 18, l: 60 },
@@ -75,7 +75,7 @@ class ChatApp {
         this.statusTime = document.getElementById('statusTime');
         this.typingHint = document.getElementById('typingHint');
         this.messageRefs = new Map();
-        this.defaultTitle = this.chatTitle.textContent || 'Rie';
+        this.defaultTitle = this.chatTitle.textContent || 'Rin';
         this.typingActive = false;
         this.typingStartTimestamp = null;
         this.baseComposerHeight = 34;
@@ -137,7 +137,7 @@ class ChatApp {
                 this.baseUrlInput.value = config.base_url || '';
                 this.modelInput.value = config.model || 'gpt-3.5-turbo';
                 this.systemPromptTextarea.value = config.system_prompt || '';
-                this.characterNameInput.value = config.character_name || 'Rie';
+                this.characterNameInput.value = config.character_name || 'Rin';
                 if (this.emotionThemeToggle) {
                     this.emotionThemeToggle.checked = config.enable_emotion_theme !== false;
                 }
@@ -163,7 +163,7 @@ class ChatApp {
             base_url: this.baseUrlInput.value.trim() || null,
             model: this.modelInput.value.trim(),
             system_prompt: this.systemPromptTextarea.value.trim(),
-            character_name: this.characterNameInput.value.trim() || 'Rie',
+            character_name: this.characterNameInput.value.trim() || 'Rin',
             enable_emotion_theme: this.emotionThemeToggle ? this.emotionThemeToggle.checked : false
         };
 
@@ -185,7 +185,7 @@ class ChatApp {
         this.chatContainer.style.display = showChat ? 'flex' : 'none';
         
         if (showChat && this.config) {
-            this.defaultTitle = this.config.character_name || 'Rie';
+            this.defaultTitle = this.config.character_name || 'Rin';
             this.chatTitle.textContent = this.defaultTitle;
         }
     }
@@ -227,7 +227,7 @@ class ChatApp {
             const avatar = document.createElement('img');
             avatar.className = 'avatar';
             avatar.src = role === 'user' ? this.avatarPaths.user : this.avatarPaths.assistant;
-            avatar.alt = role === 'user' ? 'Me' : 'Rie';
+            avatar.alt = role === 'user' ? 'Me' : 'Rin';
 
             const bubble = document.createElement('div');
             bubble.className = `bubble ${role}`;
@@ -452,7 +452,7 @@ class ChatApp {
         this.typingActive = active;
         this.chatTitle.textContent = active
             ? "对方正在输入中..."
-            : (this.defaultTitle || 'Rie');
+            : (this.defaultTitle || 'Rin');
         this.typingStartTimestamp = active ? Date.now() : null;
     }
 
@@ -479,7 +479,7 @@ class ChatApp {
         if (this.defaultTitle && this.defaultTitle.trim()) {
             return this.defaultTitle.trim();
         }
-        return 'Rie';
+        return 'Rin';
     }
 
     showRecallNotice() {

@@ -1,5 +1,5 @@
 """
-Quick start script for Rie Kugimiya virtual character system
+Quick start script for Yuzuriha Rin virtual character system
 """
 import sys
 import os
@@ -12,7 +12,7 @@ if __name__ == "__main__":
     from src.api.main import app
 
     print("=" * 60)
-    print("Rie Kugimiya Virtual Character System")
+    print("Yuzuriha Rin Virtual Character System")
     print("=" * 60)
     print("\nKey Features:")
     print("  - Multi-LLM support (OpenAI/Anthropic/Custom)")
