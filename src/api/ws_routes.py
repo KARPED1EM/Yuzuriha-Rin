@@ -61,7 +61,10 @@ async def handle_client_message(
     """Handle incoming client message"""
     msg_type = data.get("type")
 
-    if msg_type == "message":
+    if msg_type == "sync":
+        await handle_sync(websocket, conversation_id, data)
+
+    elif msg_type == "message":
         await handle_user_message(websocket, conversation_id, user_id, data)
 
     elif msg_type == "typing":
@@ -75,6 +78,23 @@ async def handle_client_message(
 
     elif msg_type == "init_rin":
         await handle_init_rin(conversation_id, data)
+
+
+async def handle_sync(
+    websocket: WebSocket,
+    conversation_id: str,
+    data: dict
+):
+    """Handle incremental sync request"""
+    after_timestamp = data.get("after_timestamp", 0)
+
+    messages = await message_service.get_messages(
+        conversation_id,
+        after_timestamp=after_timestamp
+    )
+
+    event = message_service.create_history_event(messages)
+    await ws_manager.send_to_websocket(websocket, event.model_dump())
 
 
 async def handle_user_message(
