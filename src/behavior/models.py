@@ -27,10 +27,11 @@ class MessageSegment(BaseModel):
 
 
 class PlaybackAction(BaseModel):
-    """A single step in the playback timeline (send, pause, recall)."""
-    type: Literal["send", "pause", "recall"]
+    """A single step in the playback timeline."""
+    type: Literal["send", "pause", "recall", "typing_start", "typing_end", "wait"]
     text: Optional[str] = None
-    duration: float = Field(default=0.0, ge=0.0, description="Duration in seconds for pause-like actions")
+    timestamp: float = Field(default=0.0, ge=0.0, description="Execution timestamp relative to start")
+    duration: float = Field(default=0.0, ge=0.0, description="Duration in seconds for pause/wait actions")
     message_id: Optional[str] = Field(default=None, description="Identifier for the message created by this action")
     target_id: Optional[str] = Field(default=None, description="Identifier of the message affected by this action")
     metadata: Dict[str, Any] = Field(default_factory=dict)

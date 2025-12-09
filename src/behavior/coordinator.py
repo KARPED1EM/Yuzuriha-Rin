@@ -11,6 +11,7 @@ from .segmenter import SmartSegmenter
 from .emotion import EmotionDetector
 from .typo import TypoInjector
 from .pause import PausePredictor
+from .timeline import TimelineBuilder
 
 
 class BehaviorCoordinator:
@@ -28,10 +29,11 @@ class BehaviorCoordinator:
         self.emotion_detector = EmotionDetector()
         self.typo_injector = TypoInjector()
         self.pause_predictor = PausePredictor()
+        self.timeline_builder = TimelineBuilder()
 
     def process_message(self, text: str, emotion_map: dict | None = None) -> List[PlaybackAction]:
         """
-        Convert text into a playback sequence of send/pause/recall actions.
+        Convert text into a playback sequence with timestamps.
         """
         cleaned_input = text.strip()
         if not cleaned_input:
@@ -52,7 +54,8 @@ class BehaviorCoordinator:
                 )
             )
 
-        return actions
+        timeline = self.timeline_builder.build_timeline(actions)
+        return timeline
 
     def update_config(self, config: BehaviorConfig):
         """Update behavior configuration at runtime."""

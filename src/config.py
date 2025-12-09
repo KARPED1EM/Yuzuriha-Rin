@@ -1,0 +1,165 @@
+from pydantic_settings import BaseSettings
+from pydantic import Field
+from typing import Dict
+
+
+class AppConfig(BaseSettings):
+    app_name: str = "Yuzuriha Rin Virtual Chat"
+    debug: bool = True
+    cors_origins: list = ["*"]
+
+    class Config:
+        env_file = ".env"
+
+
+class CharacterConfig(BaseSettings):
+    default_name: str = "Rin"
+    default_persona: str = "You are a helpful assistant."
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "CHARACTER_"
+
+
+class LLMDefaults(BaseSettings):
+    provider: str = "openai"
+    model_openai: str = "gpt-3.5-turbo"
+    model_anthropic: str = "claude-3-5-sonnet-20241022"
+    model_deepseek: str = "deepseek-chat"
+    model_custom: str = "gpt-3.5-turbo"
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "LLM_"
+
+
+class BehaviorDefaults(BaseSettings):
+    enable_segmentation: bool = True
+    enable_typo: bool = True
+    enable_recall: bool = True
+    enable_emotion_detection: bool = True
+
+    max_segment_length: int = 50
+    min_pause_duration: float = 0.4
+    max_pause_duration: float = 2.5
+
+    base_typo_rate: float = 0.08
+    typo_recall_rate: float = 0.4
+    recall_delay: float = 1.2
+    retype_delay: float = 0.6
+
+    emotion_typo_multiplier: Dict[str, float] = Field(default_factory=lambda: {
+        "neutral": 1.0,
+        "happy": 0.8,
+        "excited": 1.5,
+        "sad": 1.2,
+        "angry": 1.8,
+        "anxious": 2.0,
+        "confused": 1.3,
+    })
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "BEHAVIOR_"
+
+
+class TypingStateDefaults(BaseSettings):
+    hesitation_probability: float = 0.15
+    hesitation_cycles_min: int = 1
+    hesitation_cycles_max: int = 2
+    hesitation_duration_min: int = 400
+    hesitation_duration_max: int = 1200
+    hesitation_gap_min: int = 300
+    hesitation_gap_max: int = 900
+
+    typing_lead_time_threshold_1: int = 15
+    typing_lead_time_1: int = 600
+    typing_lead_time_threshold_2: int = 30
+    typing_lead_time_2: int = 800
+    typing_lead_time_threshold_3: int = 60
+    typing_lead_time_3: int = 1100
+    typing_lead_time_threshold_4: int = 100
+    typing_lead_time_4: int = 1600
+    typing_lead_time_threshold_5: int = 140
+    typing_lead_time_5: int = 2200
+    typing_lead_time_default: int = 2500
+
+    entry_delay_min: int = 200
+    entry_delay_max: int = 2000
+
+    initial_delay_weight_1: float = 0.45
+    initial_delay_range_1_min: int = 3
+    initial_delay_range_1_max: int = 4
+    initial_delay_weight_2: float = 0.75
+    initial_delay_range_2_min: int = 4
+    initial_delay_range_2_max: int = 6
+    initial_delay_weight_3: float = 0.93
+    initial_delay_range_3_min: int = 6
+    initial_delay_range_3_max: int = 8
+    initial_delay_range_4_min: int = 8
+    initial_delay_range_4_max: int = 10
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "TYPING_"
+
+
+class UIDefaults(BaseSettings):
+    avatar_user_path: str = "/static/assets/avatar_user.png"
+    avatar_assistant_path: str = "/static/assets/avatar_rin.png"
+
+    emotion_palette: Dict[str, Dict[str, int]] = Field(default_factory=lambda: {
+        "neutral": {"h": 155, "s": 18, "l": 60},
+        "happy": {"h": 48, "s": 86, "l": 62},
+        "excited": {"h": 14, "s": 82, "l": 58},
+        "sad": {"h": 208, "s": 60, "l": 56},
+        "angry": {"h": 2, "s": 78, "l": 52},
+        "anxious": {"h": 266, "s": 46, "l": 56},
+        "confused": {"h": 190, "s": 48, "l": 54},
+        "caring": {"h": 120, "s": 50, "l": 58},
+        "playful": {"h": 320, "s": 62, "l": 60},
+        "surprised": {"h": 30, "s": 80, "l": 60},
+    })
+
+    intensity_weights: Dict[str, float] = Field(default_factory=lambda: {
+        "low": 0.45,
+        "medium": 0.85,
+        "high": 1.1,
+        "extreme": 1.3
+    })
+
+    base_accent_color: str = "#07c160"
+    enable_emotion_theme: bool = True
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "UI_"
+
+
+class WebSocketConfig(BaseSettings):
+    host: str = "0.0.0.0"
+    port: int = 8000
+    ping_interval: float = 20.0
+    ping_timeout: float = 10.0
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "WS_"
+
+
+class DatabaseConfig(BaseSettings):
+    path: str = "data/messages.db"
+
+    class Config:
+        env_file = ".env"
+        env_prefix = "DB_"
+
+
+app_config = AppConfig()
+character_config = CharacterConfig()
+llm_defaults = LLMDefaults()
+behavior_defaults = BehaviorDefaults()
+typing_state_defaults = TypingStateDefaults()
+ui_defaults = UIDefaults()
+websocket_config = WebSocketConfig()
+database_config = DatabaseConfig()
