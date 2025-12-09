@@ -27,6 +27,7 @@ class PausePredictor:
         emotion: EmotionState = EmotionState.NEUTRAL,
         min_duration: float = 0.4,
         max_duration: float = 2.5,
+        text_length: int = 0,
     ) -> float:
         """
         Produce a random interval between two outgoing messages.
@@ -42,9 +43,13 @@ class PausePredictor:
         if max_duration < min_duration:
             min_duration, max_duration = max_duration, min_duration
 
-        base = random.uniform(max(0.0, min_duration), max_duration)
+        sarcasm = random.uniform(0.8, 1.2)
+        base = random.uniform(max(0.0, min_duration), max_duration) * sarcasm
         multiplier = self.emotion_intervals.get(emotion, 1.0)
         interval = base * multiplier
+
+        length_bonus = min(max(text_length, 0) * 0.035, 5.0)
+        interval += length_bonus
 
         # Clamp to non-negative range
         return round(max(0.0, interval), 3)

@@ -43,9 +43,6 @@ class BehaviorConfig(BaseModel):
     max_segment_length: int = 50  # Characters per segment (used when ML model disabled)
     min_pause_duration: float = 0.4  # Minimum random interval between segments
     max_pause_duration: float = 2.5  # Maximum random interval between segments
-    use_mini_model: bool = False  # Whether to try the mini segmenter model
-    mini_model_endpoint: Optional[str] = None  # HTTP endpoint for the mini segmenter
-    mini_model_timeout: float = 2.0  # Seconds before we abandon the mini model call
 
     # Typo injection
     enable_typo: bool = True

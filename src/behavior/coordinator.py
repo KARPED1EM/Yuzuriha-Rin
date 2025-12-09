@@ -24,15 +24,12 @@ class BehaviorCoordinator:
 
         self.segmenter = SmartSegmenter(
             max_length=self.config.max_segment_length,
-            use_mini_model=self.config.use_mini_model,
-            mini_model_endpoint=self.config.mini_model_endpoint,
-            mini_model_timeout=self.config.mini_model_timeout,
         )
         self.emotion_detector = EmotionDetector()
         self.typo_injector = TypoInjector()
         self.pause_predictor = PausePredictor()
 
-    def process_message(self, text: str) -> List[PlaybackAction]:
+    def process_message(self, text: str, emotion_map: dict | None = None) -> List[PlaybackAction]:
         """
         Convert text into a playback sequence of send/pause/recall actions.
         """
@@ -40,7 +37,7 @@ class BehaviorCoordinator:
         if not cleaned_input:
             return []
 
-        emotion = self._detect_emotion(cleaned_input)
+        emotion = self._detect_emotion(cleaned_input, emotion_map)
         segments = self._segment_and_postfix(cleaned_input)
         total_segments = len(segments)
 
@@ -61,9 +58,9 @@ class BehaviorCoordinator:
         """Update behavior configuration at runtime."""
         self.config = config
 
-    def get_emotion(self, text: str) -> EmotionState:
+    def get_emotion(self, text: str, emotion_map: dict | None = None) -> EmotionState:
         """Expose emotion detection for API metadata."""
-        return self._detect_emotion(text)
+        return self._detect_emotion(text, emotion_map)
 
     # --------------------------------------------------------------------- #
     # Internal helpers
@@ -203,10 +200,10 @@ class BehaviorCoordinator:
         recall_actions.append(correction_action)
         return recall_actions
 
-    def _detect_emotion(self, text: str) -> EmotionState:
+    def _detect_emotion(self, text: str, emotion_map: dict | None = None) -> EmotionState:
         if not self.config.enable_emotion_detection:
             return EmotionState.NEUTRAL
-        return self.emotion_detector.detect(text)
+        return self.emotion_detector.detect(emotion_map=emotion_map, fallback_text=text)
 
     @staticmethod
     def _apply_postfix(text: str) -> str:

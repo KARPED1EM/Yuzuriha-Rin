@@ -7,10 +7,10 @@ class LLMConfig(BaseModel):
     api_key: str
     base_url: Optional[str] = None
     model: str = "gpt-3.5-turbo"
-    system_prompt: str = "You are a helpful assistant."
+    system_prompt: str = "You are a helpful assistant."  # Treated as character/role prompt
 
 class ChatMessage(BaseModel):
-    role: Literal["user", "assistant"]
+    role: Literal["user", "assistant", "system"]
     content: str
 
 class BehaviorSettings(BaseModel):
@@ -19,9 +19,6 @@ class BehaviorSettings(BaseModel):
     enable_typo: bool = True
     enable_recall: bool = True
     enable_emotion_detection: bool = True
-    use_mini_model: bool = False
-    mini_model_endpoint: Optional[str] = None
-    mini_model_timeout: float = Field(default=2.0, gt=0.0)
     max_segment_length: int = Field(default=60, gt=0)
     min_pause_duration: float = Field(default=0.4, ge=0.0)
     max_pause_duration: float = Field(default=2.5, ge=0.0)
@@ -32,6 +29,7 @@ class ChatRequest(BaseModel):
     llm_config: LLMConfig
     messages: List[ChatMessage]
     character_name: str = "Rie"
+    conversation_id: str = "default"
     behavior_settings: Optional[BehaviorSettings] = None
 
 class MessageAction(BaseModel):

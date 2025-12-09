@@ -4,6 +4,7 @@ from .schemas import ChatRequest, ChatResponse, MessageAction
 from .llm_client import LLMClient
 from ..behavior import BehaviorCoordinator
 from ..behavior.models import BehaviorConfig
+from .conversation_store import conversation_store
 
 router = APIRouter()
 
@@ -17,9 +18,6 @@ def get_behavior_coordinator(request: ChatRequest) -> BehaviorCoordinator:
             enable_typo=settings.enable_typo,
             enable_recall=settings.enable_recall,
             enable_emotion_detection=settings.enable_emotion_detection,
-            use_mini_model=settings.use_mini_model,
-            mini_model_endpoint=settings.mini_model_endpoint,
-            mini_model_timeout=settings.mini_model_timeout,
             max_segment_length=settings.max_segment_length,
             min_pause_duration=settings.min_pause_duration,
             max_pause_duration=settings.max_pause_duration,
@@ -37,14 +35,23 @@ async def chat(request: ChatRequest):
     Main chat endpoint with natural message behavior simulation
     """
     try:
+        history = conversation_store.merge_history(
+            conversation_id=request.conversation_id,
+            incoming=request.messages,
+        )
+
         # Get LLM response
         client = LLMClient(request.llm_config)
-        response_text = await client.chat(request.messages)
+        llm_response = await client.chat(history, character_name=request.character_name)
         await client.close()
 
         # Process message with behavior system
         coordinator = get_behavior_coordinator(request)
-        playback = coordinator.process_message(response_text)
+        playback = coordinator.process_message(
+            llm_response.reply,
+            emotion_map=llm_response.emotion_map,
+        )
+        conversation_store.append_playback_actions(request.conversation_id, playback)
 
         actions = [
             MessageAction(
@@ -59,15 +66,17 @@ async def chat(request: ChatRequest):
         ]
 
         # Get detected emotion for metadata
-        emotion = coordinator.get_emotion(response_text)
+        emotion = coordinator.get_emotion(llm_response.reply, llm_response.emotion_map)
         send_count = len([a for a in playback if a.type == "send"])
 
         return ChatResponse(
             actions=actions,
-            raw_response=response_text,
+            raw_response=llm_response.reply,
             metadata={
                 "emotion": emotion.value,
-                "segment_count": send_count
+                "emotion_map": llm_response.emotion_map,
+                "segment_count": send_count,
+                "raw_llm": llm_response.raw_text,
             }
         )
 

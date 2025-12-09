@@ -40,7 +40,7 @@
             </div>
 
             <div class="form-group">
-                <label>System Prompt</label>
+                <label>角色设定（前端提示词，将与系统提示词组合）</label>
                 <textarea id="systemPrompt"
                     rows="4">You are Rie Kugimiya, a famous Japanese voice actress known for playing tsundere characters. You are cute, a bit sassy, but caring deep down. Respond naturally in casual conversation style.</textarea>
             </div>
@@ -50,21 +50,57 @@
                 <input type="text" id="characterName" value="Rie">
             </div>
 
+            <div class="form-group inline">
+                <div>
+                    <label for="emotionThemeToggle">情绪主题光效</label>
+                    <div class="help-text">根据每次回复的情绪值，让界面边框发出柔和的情绪色光</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="emotionThemeToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
             <button id="saveConfig" class="btn-primary">Save & Start Chat</button>
         </div>
 
         <!-- Chat Interface -->
         <div class="chat-container" id="chatContainer" style="display: none;">
-            <div class="chat-header">
-                <h2 id="chatTitle">💬 Chat with Rie</h2>
-                <button id="showConfig" class="btn-secondary">⚙️</button>
-            </div>
+            <div class="wechat-shell">
+                <div class="wechat-statusbar">
+                    <span class="status-time" id="statusTime">9:41</span>
+                    <div class="status-icons">
+                        <span class="icon-signal"></span>
+                        <span class="icon-wifi"></span>
+                        <span class="icon-battery"></span>
+                    </div>
+                </div>
 
-            <div class="messages" id="messages"></div>
+                <div class="wechat-header">
+                    <button id="showConfig" class="back-button" aria-label="back"></button>
+                    <div class="header-info">
+                        <div class="contact-name" id="chatTitle">Rie</div>
+                    </div>
+                    <button class="menu-button" aria-label="menu">
+                        <span class="action-dot"></span>
+                        <span class="action-dot"></span>
+                        <span class="action-dot"></span>
+                    </button>
+                </div>
 
-            <div class="input-area">
-                <input type="text" id="userInput" placeholder="Type your message..." disabled>
-                <button id="sendBtn" class="btn-primary" disabled>Send</button>
+                <div class="messages" id="messages"></div>
+
+                <div class="typing-hint" id="typingHint">对方正在输入...</div>
+
+                <div class="wechat-input">
+                    <button class="input-icon voice-btn" type="button" aria-label="voice"></button>
+                    <div class="input-box">
+                        <textarea id="userInput" rows="1" disabled></textarea>
+                    </div>
+                    <button class="input-icon emoji-btn" type="button" aria-label="emoji"></button>
+                    <button class="input-icon plus-btn" type="button" aria-label="plus"></button>
+                    <button id="toggleBtn" class="toggle-btn hidden" type="button" aria-label="send" disabled>发送</button>
+                </div>
             </div>
         </div>
     </div>

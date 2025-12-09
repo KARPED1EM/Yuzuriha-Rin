@@ -23,8 +23,8 @@ The system is divided into three main layers:
 └────────┬────────┘
          │
 ┌────────▼────────┐
-│ Behavior System │  - Message segmentation (rule-based + ML interface)
-│                 │  - Emotion detection
+│ Behavior System │  - Message segmentation (rule-based)
+│                 │  - Emotion interpretation
 │                 │  - Typo injection
 │                 │  - Recall simulation
 └─────────────────┘
@@ -34,35 +34,28 @@ The system is divided into three main layers:
 
 ### 1. Message Segmentation (`src/behavior/segmenter.py`)
 
-The segmentation module provides a flexible interface that supports both rule-based and mini-model implementations:
+The segmentation module now relies purely on rule-based logic (no mini model dependency):
 
 **BaseSegmenter (Abstract Class)**
 - Defines the interface for all segmenters
 - Method: `segment(text: str) -> List[str]`
 
 **RuleBasedSegmenter**
-- Fallback implementation that splits on punctuation/dash characters
+- Splits on punctuation/dash characters
 - Preserves punctuation (later trimmed by postfix)
 - Enforces a soft max segment length when no punctuation is present
 
-**MiniModelSegmenter**
-- Optional HTTP client that calls a lightweight segmentation service
-- Accepts `{ "text": "..." }` and expects `{ "segments": ["..."] }`
-- Raises an error on malformed responses so the caller can fall back
-
 **SmartSegmenter (Recommended)**
-- Automatically chooses between mini model and rule-based implementations
-- Handles failures gracefully and logs fallback reasons
-- Respects `BehaviorConfig.use_mini_model` flags and timeout settings
+- Thin wrapper around `RuleBasedSegmenter`
+- Kept for future extension if a new upstream LLM-based segmenter is added
 
-### 2. Emotion Detection (`src/behavior/emotion.py`)
+### 2. Emotion Interpretation (`src/behavior/emotion.py`)
 
 **EmotionDetector**
-- Keyword-based emotion detection
+- Interprets LLM-returned emotion maps (`{emotion: intensity}`)
 - Supports 7 emotion states: neutral, happy, excited, sad, angry, anxious, confused
-- Chinese and English keyword support
-- Emoji detection
-- Returns both emotion type and intensity
+- Intensity order: low < medium < high < extreme
+- Falls back to neutral when the map is missing/invalid
 
 **Supported Emotions:**
 - `NEUTRAL`: Default state
@@ -135,13 +128,12 @@ The segmentation module provides a flexible interface that supports both rule-ba
         {"role": "user", "content": "Hello!"}
     ],
     "character_name": "Rie",
+    "conversation_id": "conv-123",
     "behavior_settings": {  # Optional
         "enable_segmentation": true,
         "enable_typo": true,
         "enable_recall": true,
         "enable_emotion_detection": true,
-        "use_mini_model": false,
-        "mini_model_endpoint": null,
         "min_pause_duration": 0.4,
         "max_pause_duration": 2.5,
         "base_typo_rate": 0.08,
@@ -177,6 +169,7 @@ The segmentation module provides a flexible interface that supports both rule-ba
     "raw_response": "你好！今天天气不错呢",
     "metadata": {
         "emotion": "happy",
+        "emotion_map": {"happy": "high"},
         "segment_count": 2
     }
 }
@@ -206,16 +199,20 @@ The frontend plays the action list sequentially:
 - **Emotion indicators**: Colored border based on detected emotion.
 - **Smooth scrolling**: Auto-scroll to latest message.
 
-## Mini Model Integration
+## LLM JSON Contract
 
-When the lightweight segmentation model is ready, deploy it as an HTTP service (FastAPI/Flask/etc.) that accepts `{"text": "..."}` and responds with `{"segments": ["...", "..."]}`.
+The LLM is instructed via a fixed system prompt to respond **only** with JSON:
 
-1. Expose the endpoint URL (e.g., `http://127.0.0.1:9000/segment`).
-2. Configure the backend via `BehaviorConfig(use_mini_model=True, mini_model_endpoint=...)`.
-3. The `SmartSegmenter` will call the endpoint first; any error (timeout, invalid JSON, empty list) automatically falls back to the punctuation rule set.
-4. Tune `mini_model_timeout` to match deployment latency.
+```json
+{
+  "emotion": {"happy": "medium", "excited": "high"},
+  "reply": "好的，马上发给你～"
+}
+```
 
-This keeps the front-end contract unchanged; only the segmentation quality improves when the mini model is online.
+- `emotion`: dictionary of emotion → intensity (`low|medium|high|extreme`)
+- `reply`: short, WeChat-style message without旁白/内心戏
+- The frontend prompt is treated as persona text; the backend injects history + system prompt automatically.
 
 ## Configuration
 
