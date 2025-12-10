@@ -42,7 +42,8 @@ class BehaviorCoordinator:
         if not cleaned_input:
             return []
 
-        emotion = self._detect_emotion(cleaned_input, emotion_map)
+        normalized_emotion_map = self.emotion_detector.normalize_map(emotion_map)
+        emotion = self._detect_emotion(cleaned_input, normalized_emotion_map)
         segments = self._segment_and_clean(cleaned_input)
         total_segments = len(segments)
 
@@ -54,6 +55,7 @@ class BehaviorCoordinator:
                     segment_index=index,
                     total_segments=total_segments,
                     emotion=emotion,
+                    emotion_map=normalized_emotion_map,
                 )
             )
 
@@ -66,7 +68,8 @@ class BehaviorCoordinator:
 
     def get_emotion(self, text: str, emotion_map: dict | None = None) -> EmotionState:
         """Expose emotion detection for API metadata."""
-        return self._detect_emotion(text, emotion_map)
+        normalized_map = self.emotion_detector.normalize_map(emotion_map)
+        return self._detect_emotion(text, normalized_map)
 
     # --------------------------------------------------------------------- #
     # Internal helpers
@@ -96,12 +99,14 @@ class BehaviorCoordinator:
         segment_index: int,
         total_segments: int,
         emotion: EmotionState,
+        emotion_map: dict | None = None,
     ) -> List[PlaybackAction]:
         actions: List[PlaybackAction] = []
         base_metadata = {
             "segment_index": segment_index,
             "total_segments": total_segments,
             "emotion": emotion.value,
+            "emotion_map": emotion_map or {},
         }
 
         # Typo injection (if enabled)

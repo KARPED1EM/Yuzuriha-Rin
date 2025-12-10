@@ -60,6 +60,12 @@ class EmotionDetector:
         )
         return self.NAME_TO_STATE.get(top_emotion, EmotionState.NEUTRAL)
 
+    def normalize_map(self, emotion_map: Dict[str, str] | None) -> Dict[str, str]:
+        """Public helper to normalize raw emotion maps into lowercase keys/values."""
+        if not emotion_map:
+            return {}
+        return self._normalize_map(emotion_map)
+
     def _normalize_map(self, emotion_map: Dict[str, str]) -> Dict[str, str]:
         cleaned: Dict[str, str] = {}
         for raw_key, raw_value in emotion_map.items():
