@@ -9,8 +9,8 @@
 </head>
 
 <body>
-    <div class="container">
-        <!-- Config Panel -->
+    <div class="app-container">
+        <!-- Config Panel (overlay) -->
         <div class="config-panel" id="configPanel">
             <h2>⚙️ Configuration</h2>
 
@@ -74,57 +74,64 @@
             <button id="saveConfig" class="btn-primary">Save & Start Chat</button>
         </div>
 
-        <!-- Chat Interface -->
-        <div class="chat-container" id="chatContainer" style="display: none;">
-            <div class="wechat-shell" id="wechatShell">
-                <div class="wechat-statusbar">
-                    <div class="status-left">
-                        <span class="status-time" id="statusTime">
-                            <span id="statusAmPm">上午</span>
-                            <span id="statusClock">9:41</span>
-                        </span>
-                    </div>
-                    <div class="punch-hole" aria-hidden="true"></div>
-                    <div class="status-right">
-                        <img src="/static/assets/signal.svg" alt="Signal" class="status-icon status-icon-signal">
-                        <img src="/static/assets/wifi.svg" alt="WiFi" class="status-icon status-icon-wifi">
-                        <img src="/static/assets/battery.svg" alt="Battery" class="status-icon battery-icon">
-                        <span class="battery-percent">100%</span>
-                    </div>
-                </div>
+        <!-- Phone Container (always visible, centered) -->
+        <div class="phone-container">
+            <div class="wechat-shell" id="wechatShell" style="display: none;">
+                <div class="wechat-screen">
+                    <div class="wechat-top">
+                        <div class="wechat-statusbar">
+                            <div class="status-left">
+                                <span class="status-time" id="statusTime">
+                                    <span id="statusAmPm">上午</span>
+                                    <span id="statusClock">9:41</span>
+                                </span>
+                            </div>
+                            <div class="punch-hole" aria-hidden="true"></div>
+                            <div class="status-right">
+                                <img src="/static/assets/signal.svg" alt="Signal" class="status-icon status-icon-signal">
+                                <img src="/static/assets/wifi.svg" alt="WiFi" class="status-icon status-icon-wifi">
+                                <img src="/static/assets/battery.svg" alt="Battery" class="status-icon battery-icon">
+                                <span class="battery-percent">100%</span>
+                            </div>
+                        </div>
 
-                <div class="wechat-header">
-                    <button id="showConfig" class="back-button" aria-label="back"></button>
-                    <div class="header-info">
-                        <div class="contact-name" id="chatTitle">Rin</div>
+                        <div class="wechat-header">
+                            <button id="showConfig" class="back-button" aria-label="back"></button>
+                            <div class="header-info">
+                                <div class="contact-name" id="chatTitle">Rin</div>
+                            </div>
+                            <button class="menu-button" id="clearBtn" aria-label="clear" title="Clear conversation">
+                                <span class="action-dot"></span>
+                                <span class="action-dot"></span>
+                                <span class="action-dot"></span>
+                            </button>
+                        </div>
                     </div>
-                    <button class="menu-button" id="clearBtn" aria-label="clear" title="Clear conversation">
-                        <span class="action-dot"></span>
-                        <span class="action-dot"></span>
-                        <span class="action-dot"></span>
-                    </button>
-                </div>
 
-                <div class="messages" id="messages"></div>
-
-                <div class="typing-hint" id="typingHint">对方正在输入...</div>
-
-                <div class="wechat-input">
-                    <button class="input-icon voice-btn" type="button" aria-label="voice"></button>
-                    <div class="input-box">
-                        <textarea id="userInput" rows="1" disabled></textarea>
+                    <div class="wechat-main">
+                        <div class="messages" id="messages"></div>
+                        <div class="typing-hint" id="typingHint">对方正在输入...</div>
                     </div>
-                    <button class="input-icon emoji-btn" type="button" aria-label="emoji"></button>
-                    <button class="input-icon plus-btn" type="button" aria-label="plus"></button>
-                    <button id="toggleBtn" class="toggle-btn hidden" type="button" aria-label="send"
-                        disabled>发送</button>
+
+                    <div class="wechat-bottom">
+                        <div class="wechat-input">
+                            <button class="input-icon voice-btn" type="button" aria-label="voice"></button>
+                            <div class="input-box">
+                                <textarea id="userInput" rows="1" disabled></textarea>
+                            </div>
+                            <button class="input-icon emoji-btn" type="button" aria-label="emoji"></button>
+                            <button class="input-icon plus-btn" type="button" aria-label="plus"></button>
+                            <button id="toggleBtn" class="toggle-btn hidden" type="button" aria-label="send"
+                                disabled>发送</button>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Debug Log Panel -->
-            <div class="debug-log-panel" id="debugLogPanel" style="display: none;">
-                <div class="debug-log-content" id="debugLogContent"></div>
-            </div>
+        <!-- Debug Log Panel (right side) -->
+        <div class="debug-log-panel" id="debugLogPanel" style="display: none;">
+            <div class="debug-log-content" id="debugLogContent"></div>
         </div>
     </div>
 

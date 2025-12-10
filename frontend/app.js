@@ -93,6 +93,7 @@ class ChatApp {
     }
 
     initElements() {
+        this.appContainer = document.querySelector('.app-container');
         this.configPanel = document.getElementById('configPanel');
         this.providerSelect = document.getElementById('provider');
         this.apiKeyInput = document.getElementById('apiKey');
@@ -105,7 +106,7 @@ class ChatApp {
         this.debugModeToggle = document.getElementById('debugModeToggle');
         this.saveConfigBtn = document.getElementById('saveConfig');
 
-        this.chatContainer = document.getElementById('chatContainer');
+        this.phoneContainer = document.querySelector('.phone-container');
         this.wechatShell = document.getElementById('wechatShell');
         this.chatTitle = document.getElementById('chatTitle');
         this.messagesDiv = document.getElementById('messages');
@@ -338,8 +339,9 @@ class ChatApp {
 
     toggleView() {
         const showChat = this.configPanel.style.display !== 'none';
-        this.configPanel.style.display = showChat ? 'none' : 'block';
-        this.chatContainer.style.display = showChat ? 'flex' : 'none';
+        // Keep the config panel as a flex container so its content stays centered
+        this.configPanel.style.display = showChat ? 'none' : 'flex';
+        this.wechatShell.style.display = showChat ? 'block' : 'none';
 
         if (showChat && this.config) {
             this.defaultTitle = this.config.character_name || 'Rin';
@@ -431,7 +433,7 @@ class ChatApp {
         this.ws.onclose = () => {
             console.log('WebSocket closed');
             setTimeout(() => {
-                if (this.config && this.chatContainer.style.display !== 'none') {
+                if (this.config && this.wechatShell.style.display !== 'none') {
                     this.connectWebSocket();
                 }
             }, 3000);
@@ -928,12 +930,10 @@ class ChatApp {
         this.debugMode = enabled;
 
         if (enabled) {
-            this.chatContainer.classList.add('debug-mode');
-            this.debugLogPanel.style.display = 'flex';
+            this.appContainer.classList.add('debug-mode');
             console.log('Debug mode enabled on frontend');
         } else {
-            this.chatContainer.classList.remove('debug-mode');
-            this.debugLogPanel.style.display = 'none';
+            this.appContainer.classList.remove('debug-mode');
             console.log('Debug mode disabled on frontend');
         }
 
