@@ -124,6 +124,37 @@ uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 
 保存配置后即可开始与虚拟角色聊天！
 
+## 🧪 测试与故障排除
+
+### 服务器连接测试
+
+运行测试脚本验证服务器是否正常工作：
+
+```bash
+python test_server.py
+```
+
+如果显示 `✅ Server is running correctly!`，说明服务器正常运行。
+
+### WebSocket 连接问题
+
+如果前端无法连接 WebSocket，请检查：
+
+1. **使用正确的 URL**
+   - ✅ 正确：`http://localhost:8000`
+   - ❌ 错误：`http://0.0.0.0:8000`（WebSocket 无法连接）
+
+2. **查看浏览器控制台**（F12）
+   - 应该看到 "WebSocket connected"
+   - 如有错误信息，查看 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
+3. **验证健康检查端点**
+   ```bash
+   curl http://localhost:8000/api/health
+   ```
+
+更多诊断步骤请参考 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+
 ## 📁 项目结构
 
 ```bash
