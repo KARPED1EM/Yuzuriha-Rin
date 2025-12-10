@@ -3,7 +3,7 @@ name = "yuzuriha-rin"
 version = "0.1.0"
 description = "Virtual character dialogue system with rule-based behavior engine for natural messaging patterns"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.11"
 dependencies = [
     "accelerate>=1.12.0",
     "datasets>=4.4.1",
@@ -16,6 +16,7 @@ dependencies = [
     "numpy>=1.26.4",
     "pydantic>=2.12.4",
     "pydantic-settings>=2.12.0",
+    "pypinyin>=0.55.0",
     "pywebview>=6.1",
     "scikit-learn>=1.7.2",
     "torch>=2.6.0",

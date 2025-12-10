@@ -5,46 +5,34 @@ Injects realistic typos based on emotion state and probability.
 """
 
 import random
-from typing import Optional, Tuple
+from pathlib import Path
+from typing import List, Optional, Tuple
+
+import jieba
+
+from .same_pinyin_finder import SamePinyinFinder
 
 
 class TypoInjector:
-    """Inject natural-looking typos into text"""
+    """Inject natural-looking typos into text."""
 
-    def __init__(self):
-        self.chinese_similar_chars = {
-            "的": ["地", "得", "滴", "德", "底"],
-            "地": ["的", "得", "底", "弟", "蒂"],
-            "得": ["的", "地", "德", "滴"],
-            "了": ["啦", "乐", "勒", "喽"],
-            "啦": ["拉", "了", "辣", "喇"],
-            "是": ["事", "试", "时", "使", "市", "室", "氏"],
-            "在": ["再", "载", "仔", "栽", "灾"],
-            "不": ["布", "步", "部", "卜"],
-            "没": ["美", "妹", "每", "眉", "煤"],
-            "要": ["药", "腰", "耀", "咬", "邀", "瑶"],
-            "就": ["旧", "救", "酒", "久", "纠", "九"],
-            "会": ["回", "汇", "挥", "惠", "绘"],
-            "我": ["窝", "哦", "握", "沃", "喔"],
-            "你": ["呢", "泥", "妮", "拟", "倪"],
-            "他": ["她", "它", "祂", "拓", "塔"],
-            "这": ["着", "者", "折", "咤"],
-            "那": ["哪", "娜", "呐", "纳"],
-            "啥": ["傻", "沙", "杀", "纱"],
-            "吗": ["嘛", "妈", "马", "骂", "麻"],
-            "嘛": ["吗", "妈", "马", "骂", "麻"],
-            "呢": ["哪", "呐", "泥", "妮"],
-            "吧": ["把", "八", "爸", "罢", "巴"],
-            "哈": ["啊", "嘎", "啥", "哇"],
-            "啊": ["呀", "哈", "吖", "哦"],
-            "哦": ["喔", "噢", "欧", "偶"],
-            "嗯": ["恩", "唔", "摁", "呃"],
-            "很": ["狠", "恨", "痕"],
-            "好": ["号", "耗", "浩", "郝", "豪"],
-            "对": ["队", "兑", "怼", "堆"],
-            "都": ["豆", "逗", "抖", "兜", "斗"],
-            "给": ["各", "跟", "该", "搁"],
-        }
+    def __init__(
+        self,
+        same_pinyin_dict_path: Optional[str] = None,
+        max_char_candidates: int = 12,
+        max_word_candidates: int = 40,
+    ):
+        """
+        Args:
+            same_pinyin_dict_path: Optional path to jieba-style dict for pinyin matching.
+            max_char_candidates: Limit per-character candidate count to avoid explosion.
+            max_word_candidates: Limit per-token candidate count to keep sampling cheap.
+        """
+        self.same_pinyin_dict_path = self._resolve_dict_path(same_pinyin_dict_path)
+        self.max_char_candidates = max_char_candidates
+        self.max_word_candidates = max_word_candidates
+        self._same_pinyin_finder: Optional[SamePinyinFinder] = None
+        self._finder_loaded = False
 
         self.english_keyboard_neighbors = {
             "q": ["w", "a"],
@@ -79,84 +67,164 @@ class TypoInjector:
         self, text: str, typo_rate: float = 0.08
     ) -> Tuple[bool, Optional[str], Optional[int], Optional[str]]:
         """
-        Potentially inject a typo into the text
-
-        Args:
-            text: Input text
-            typo_rate: Probability of injecting a typo (0.0 to 1.0)
+        Potentially inject a typo into the text.
 
         Returns:
-            Tuple of (has_typo, typo_text, typo_position, original_char)
+            Tuple of (has_typo, typo_text, typo_position, original_char_or_token)
         """
         if not text or random.random() > typo_rate:
             return False, None, None, None
 
-        # Find a suitable position for typo
-        # Prefer middle-to-end of text (more realistic)
-        min_pos = max(1, len(text) // 3)
-        max_pos = len(text)
+        word_level = self._apply_same_pinyin_word_typo(text)
+        if word_level:
+            typo_text, start, original = word_level
+            return True, typo_text, start, original
 
-        # Filter to only positions with replaceable characters
-        valid_positions = []
-        for i in range(min_pos, max_pos):
-            char = text[i]
-            if self._can_replace(char):
-                valid_positions.append(i)
+        char_level = self._apply_char_typo(text)
+        if char_level:
+            typo_text, pos, original_char = char_level
+            return True, typo_text, pos, original_char
 
-        if not valid_positions:
-            return False, None, None, None
-
-        # Choose random position
-        typo_pos = random.choice(valid_positions)
-        original_char = text[typo_pos]
-
-        # Generate typo character
-        typo_char = self._generate_typo_char(original_char)
-        if typo_char is None:
-            return False, None, None, None
-
-        # Create typo text
-        typo_text = text[:typo_pos] + typo_char + text[typo_pos + 1 :]
-
-        return True, typo_text, typo_pos, original_char
-
-    def _can_replace(self, char: str) -> bool:
-        """Check if a character can be replaced with a typo"""
-        # Chinese characters
-        if char in self.chinese_similar_chars:
-            return True
-
-        # English letters
-        if char.lower() in self.english_keyboard_neighbors:
-            return True
-
-        return False
-
-    def _generate_typo_char(self, char: str) -> Optional[str]:
-        """Generate a typo replacement for a character"""
-        # Chinese typo
-        if char in self.chinese_similar_chars:
-            return random.choice(self.chinese_similar_chars[char])
-
-        # English typo (keyboard neighbor)
-        char_lower = char.lower()
-        if char_lower in self.english_keyboard_neighbors:
-            neighbor = random.choice(self.english_keyboard_neighbors[char_lower])
-            # Preserve case
-            if char.isupper():
-                return neighbor.upper()
-            return neighbor
-
-        return None
+        return False, None, None, None
 
     def should_recall_typo(self, recall_rate: float = 0.4) -> bool:
-        """
-        Decide whether to recall and fix a typo
-
-        Args:
-            recall_rate: Probability of recalling (0.0 to 1.0)
-
-        Returns:
-            True if should recall
-        """
+        """Decide whether to recall and fix a typo."""
         return random.random() < recall_rate
+
+    # ------------------------------------------------------------------ #
+    # Internal helpers
+    # ------------------------------------------------------------------ #
+    def _apply_same_pinyin_word_typo(self, text: str) -> Optional[Tuple[str, int, str]]:
+        """
+        Try to replace a whole Chinese token with a same-pinyin alternative.
+        """
+        finder = self._get_same_pinyin_finder()
+        if finder is None or not self._contains_cjk(text):
+            return None
+
+        tokens = list(jieba.cut(text))
+        candidates: List[Tuple[int, int, str, List[str]]] = []
+        offset = 0
+        min_start = max(1, len(text) // 3)
+
+        for token in tokens:
+            start = text.find(token, offset)
+            if start < 0:
+                offset += len(token)
+                continue
+            end = start + len(token)
+            offset = end
+
+            if start < min_start or not self._contains_cjk(token):
+                continue
+
+            alt_words = finder.get_candidates(
+                token,
+                use_word_list=True,
+                use_char_fallback=True,
+                include_original=False,
+                max_per_char=self.max_char_candidates,
+            )
+            if not alt_words:
+                continue
+
+            limited = alt_words[: self.max_word_candidates]
+            candidates.append((start, end, token, limited))
+
+        if not candidates:
+            return None
+
+        start, end, token, alts = random.choice(candidates)
+        replacement = random.choice(alts)
+        if not replacement or replacement == token:
+            return None
+
+        typo_text = text[:start] + replacement + text[end:]
+        return typo_text, start, token
+
+    def _apply_char_typo(self, text: str) -> Optional[Tuple[str, int, str]]:
+        """Fallback: replace a single character (Chinese or English)."""
+        min_pos = max(1, len(text) // 3)
+        candidate_positions: List[Tuple[int, List[str]]] = []
+
+        for idx, ch in enumerate(text):
+            if idx < min_pos:
+                continue
+            replacements = self._char_replacements(ch)
+            if replacements:
+                candidate_positions.append((idx, replacements))
+
+        if not candidate_positions:
+            return None
+
+        typo_pos, replacements = random.choice(candidate_positions)
+        typo_char = random.choice(replacements)
+        original_char = text[typo_pos]
+        typo_text = text[:typo_pos] + typo_char + text[typo_pos + 1 :]
+        return typo_text, typo_pos, original_char
+
+    def _char_replacements(self, char: str) -> List[str]:
+        """Return possible replacements for a single character."""
+        replacements: List[str] = []
+
+        if self._is_cjk_char(char):
+            finder = self._get_same_pinyin_finder()
+            if finder is not None:
+                candidates = finder.get_candidates(
+                    char,
+                    use_word_list=True,
+                    use_char_fallback=True,
+                    include_original=False,
+                    max_per_char=self.max_char_candidates,
+                )
+                replacements.extend([c for c in candidates if len(c) == 1])
+
+        char_lower = char.lower()
+        if char_lower in self.english_keyboard_neighbors:
+            neighbors = self.english_keyboard_neighbors[char_lower]
+            replacements.extend([n.upper() if char.isupper() else n for n in neighbors])
+
+        return replacements
+
+    def _get_same_pinyin_finder(self) -> Optional[SamePinyinFinder]:
+        """Lazy-load SamePinyinFinder from jieba dict (with fallback)."""
+        if self._finder_loaded:
+            return self._same_pinyin_finder
+
+        self._finder_loaded = True
+
+        try:
+            if self.same_pinyin_dict_path and self.same_pinyin_dict_path.exists():
+                self._same_pinyin_finder = SamePinyinFinder.from_dict_file(
+                    str(self.same_pinyin_dict_path)
+                )
+            else:
+                # Even without a word list we can still do char-level pinyin swaps
+                self._same_pinyin_finder = SamePinyinFinder()
+        except Exception as exc:  # pragma: no cover - defensive logging
+            print(f"[behavior] failed to init SamePinyinFinder: {exc}")
+            self._same_pinyin_finder = None
+
+        return self._same_pinyin_finder
+
+    def _resolve_dict_path(self, explicit_path: Optional[str]) -> Optional[Path]:
+        """Resolve the dict file location (prefer big dict if available)."""
+        if explicit_path:
+            path = Path(explicit_path)
+            return path if path.exists() else None
+
+        project_root = Path(__file__).resolve().parent.parent.parent
+        data_dir = project_root / "data"
+        for name in ("dict.txt.big", "dict.txt"):
+            candidate = data_dir / name
+            if candidate.exists():
+                return candidate
+        return None
+
+    @staticmethod
+    def _contains_cjk(text: str) -> bool:
+        return any(TypoInjector._is_cjk_char(ch) for ch in text)
+
+    @staticmethod
+    def _is_cjk_char(ch: str) -> bool:
+        return "\u4e00" <= ch <= "\u9fff"
