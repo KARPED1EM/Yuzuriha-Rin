@@ -19,7 +19,7 @@ dependencies = [
     "torch>=2.6.0",
     "tqdm>=4.67.1",
     "transformers>=4.57.3",
-    "uvicorn>=0.38.0",
+    "uvicorn[standard]>=0.38.0",
 ]
 
 [[tool.uv.index]]
