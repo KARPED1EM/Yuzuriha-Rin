@@ -1,6 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from datetime import datetime
-from typing import Optional
 import json
 
 from ..message_server import MessageService, WebSocketManager, Message, MessageType, TypingState
