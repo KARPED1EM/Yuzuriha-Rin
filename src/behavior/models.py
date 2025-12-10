@@ -30,7 +30,7 @@ class PlaybackAction(BaseModel):
     """A single step in the playback timeline."""
     type: Literal["send", "pause", "recall", "typing_start", "typing_end", "wait"]
     text: Optional[str] = None
-    timestamp: float = Field(default=0.0, ge=0.0, description="Execution timestamp relative to start")
+    timestamp: float = Field(default=0.0, ge=0.0, description="Execution timestamp in seconds relative to start")
     duration: float = Field(default=0.0, ge=0.0, description="Duration in seconds for pause/wait actions")
     message_id: Optional[str] = Field(default=None, description="Identifier for the message created by this action")
     target_id: Optional[str] = Field(default=None, description="Identifier of the message affected by this action")
