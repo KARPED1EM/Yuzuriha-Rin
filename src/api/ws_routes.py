@@ -1,6 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from datetime import datetime
-import json
 
 from ..message_server import MessageService, WebSocketManager, Message, MessageType, TypingState
 from ..rin_client import RinClient
