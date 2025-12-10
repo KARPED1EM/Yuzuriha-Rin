@@ -202,7 +202,12 @@ class ChatApp {
 
         this.userInput.addEventListener('input', () => {
             this.updateComposerState();
-            this.adjustTextareaHeight();
+
+            // Delay height calculation slightly to let browser finish layout after button width changes
+            // Button widths now change instantly (no transition), but we need to wait for DOM layout
+            requestAnimationFrame(() => {
+                this.adjustTextareaHeight();
+            });
         });
 
         if (this.emotionThemeToggle) {

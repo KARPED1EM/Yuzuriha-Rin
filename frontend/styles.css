@@ -680,7 +680,8 @@ textarea {
 
 .plus-btn {
     background-image: url("/static/assets/icon_plus.png");
-    transition: opacity 0.2s ease, width 0.2s ease, margin 0.2s ease;
+    /* Remove width/margin transition so input box width changes instantly */
+    transition: opacity 0.2s ease;
 }
 
 .plus-btn.hidden {
@@ -726,6 +727,8 @@ textarea {
     cursor: pointer;
     opacity: 1;
     transform: translateX(0);
+    /* Remove width transition so input box width changes instantly */
+    /* Keep opacity and transform for smooth visual effect */
     transition: opacity 0.2s ease, transform 0.2s ease;
     flex-shrink: 0;
     margin-bottom: 5px;
