@@ -30,7 +30,9 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 60)
     print("Starting server in DEBUG mode...")
-    print("URL: http://localhost:8000")
+    print("  ✓ URL: http://localhost:8000")
+    print("\n⚠️  IMPORTANT: Please access via http://localhost:8000")
+    print("   (Do NOT use http://0.0.0.0:8000 - WebSocket won't work)")
     print("=" * 60 + "\n")
 
     uvicorn.run(

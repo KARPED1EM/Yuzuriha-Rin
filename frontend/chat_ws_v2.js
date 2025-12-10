@@ -249,8 +249,14 @@ class ChatApp {
             this.ws.close();
         }
 
+        // For local development, always use localhost instead of 0.0.0.0
+        let host = window.location.host;
+        if (host.startsWith('0.0.0.0:')) {
+            host = host.replace('0.0.0.0:', 'localhost:');
+        }
+
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/api/ws/${this.sessionId}?user_id=user`;
+        const wsUrl = `${protocol}//${host}/api/ws/${this.sessionId}?user_id=user`;
 
         this.ws = new WebSocket(wsUrl);
 

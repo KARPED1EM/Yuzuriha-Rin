@@ -21,8 +21,10 @@ if __name__ == "__main__":
     print("  - Rule-based segmentation plus emotion-driven typo/recall behavior")
     print("  - Server-side history injection for consistent persona adherence")
     print("\nStarting server...")
-    print("URL: http://localhost:8000")
-    print("API: http://localhost:8000/api/health")
+    print("  ✓ URL: http://localhost:8000")
+    print("  ✓ API: http://localhost:8000/api/health")
+    print("\n⚠️  IMPORTANT: Please access via http://localhost:8000")
+    print("   (Do NOT use http://0.0.0.0:8000 - WebSocket won't work)")
     print("\nPress Ctrl+C to stop\n")
     print("=" * 60)
 
