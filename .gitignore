@@ -6,6 +6,9 @@ dist/
 build/
 .claude/
 
+models\few_shot_intent_sft\
+models\intent_model\
+
 *.pyc
 uv.lock
 *.db
