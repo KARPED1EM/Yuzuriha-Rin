@@ -1,6 +1,6 @@
 import random
 from typing import List
-from .models import PlaybackAction, EmotionState
+from .models import PlaybackAction
 from ..config import typing_state_defaults
 
 
