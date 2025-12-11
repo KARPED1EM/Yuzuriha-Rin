@@ -10,7 +10,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
 # 表情包目录（与脚本在同一目录下）
-EMOJI_DIR = SCRIPT_DIR / "emojis"
+sticker_DIR = SCRIPT_DIR / "stickers"
 
 # 完整的意图到罗马音映射字典
 INTENT_ROMAJI_MAP = {
@@ -98,70 +98,70 @@ INTENT_ROMAJI_MAP = {
 ROMAJI_INTENT_MAP = {v: k for k, v in INTENT_ROMAJI_MAP.items()}
 
 
-def get_emoji_path(intent_chinese, emoji_dir=None):
+def get_sticker_path(intent_chinese, sticker_dir=None):
     """
     根据中文意图获取表情包文件路径
 
     Args:
         intent_chinese: 中文意图名称，如 "招呼用语"
-        emoji_dir: 表情包目录路径，默认为脚本所在目录下的 emojis 文件夹
+        sticker_dir: 表情包目录路径，默认为脚本所在目录下的 stickers 文件夹
 
     Returns:
         表情包文件的 Path 对象
         如果意图不存在，返回 None
 
     Examples:
-        >>> path = get_emoji_path("招呼用语")
+        >>> path = get_sticker_path("招呼用语")
         >>> print(path)
-        # Windows: C:\\Users\\ASUS\\Desktop\\Rie-Kugimiya\\models\\scripts\\emojis\\zhaohu_yongyu.png
-        # Linux: /home/user/scripts/emojis/zhaohu_yongyu.png
+        # Windows: C:\\Users\\ASUS\\Desktop\\Rie-Kugimiya\\models\\scripts\\stickers\\zhaohu_yongyu.png
+        # Linux: /home/user/scripts/stickers/zhaohu_yongyu.png
     """
     romaji = INTENT_ROMAJI_MAP.get(intent_chinese)
     if not romaji:
         return None
 
-    # 如果没有指定 emoji_dir，使用默认的脚本同目录下的 emojis
-    if emoji_dir is None:
-        emoji_dir = EMOJI_DIR
+    # 如果没有指定 sticker_dir，使用默认的脚本同目录下的 stickers
+    if sticker_dir is None:
+        sticker_dir = sticker_DIR
     else:
-        emoji_dir = Path(emoji_dir)
+        sticker_dir = Path(sticker_dir)
 
-    return emoji_dir / f"{romaji}.png"
+    return sticker_dir / f"{romaji}.png"
 
 
-def get_emoji_path_str(intent_chinese, emoji_dir=None):
+def get_sticker_path_str(intent_chinese, sticker_dir=None):
     """
     根据中文意图获取表情包文件路径（字符串格式）
 
     Args:
         intent_chinese: 中文意图名称，如 "招呼用语"
-        emoji_dir: 表情包目录路径，默认为脚本所在目录下的 emojis 文件夹
+        sticker_dir: 表情包目录路径，默认为脚本所在目录下的 stickers 文件夹
 
     Returns:
         表情包文件路径的字符串
         如果意图不存在，返回 None
 
     Examples:
-        >>> path = get_emoji_path_str("招呼用语")
+        >>> path = get_sticker_path_str("招呼用语")
         >>> print(path)
         # 返回系统特定的路径字符串
     """
-    path = get_emoji_path(intent_chinese, emoji_dir)
+    path = get_sticker_path(intent_chinese, sticker_dir)
     return str(path) if path else None
 
 
-def check_emoji_exists(intent_chinese, emoji_dir=None):
+def check_sticker_exists(intent_chinese, sticker_dir=None):
     """
     检查表情包文件是否存在
 
     Args:
         intent_chinese: 中文意图名称
-        emoji_dir: 表情包目录路径
+        sticker_dir: 表情包目录路径
 
     Returns:
         True 如果文件存在，否则 False
     """
-    path = get_emoji_path(intent_chinese, emoji_dir)
+    path = get_sticker_path(intent_chinese, sticker_dir)
     return path.exists() if path else False
 
 
@@ -276,13 +276,15 @@ def get_intents_by_category():
     }
 
 
-def get_emoji_dir_info():
+def get_sticker_dir_info():
     """获取表情包目录信息"""
     return {
         "script_dir": str(SCRIPT_DIR),
-        "emoji_dir": str(EMOJI_DIR),
-        "emoji_dir_exists": EMOJI_DIR.exists(),
-        "emoji_count": len(list(EMOJI_DIR.glob("*.png"))) if EMOJI_DIR.exists() else 0,
+        "sticker_dir": str(sticker_DIR),
+        "sticker_dir_exists": sticker_DIR.exists(),
+        "sticker_count": (
+            len(list(sticker_DIR.glob("*.png"))) if sticker_DIR.exists() else 0
+        ),
     }
 
 
@@ -293,19 +295,19 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # 显示目录信息
-    info = get_emoji_dir_info()
+    info = get_sticker_dir_info()
     print("\n目录信息:")
     print(f"  脚本目录: {info['script_dir']}")
-    print(f"  表情包目录: {info['emoji_dir']}")
-    print(f"  表情包目录存在: {info['emoji_dir_exists']}")
-    print(f"  表情包文件数: {info['emoji_count']}")
+    print(f"  表情包目录: {info['sticker_dir']}")
+    print(f"  表情包目录存在: {info['sticker_dir_exists']}")
+    print(f"  表情包文件数: {info['sticker_count']}")
 
     # 测试1：获取表情包路径
     test_intents = ["招呼用语", "肯定(好的)", "否定(不需要)", "疑问(时间)"]
     print("\n测试1：获取表情包路径")
     for intent in test_intents:
-        path = get_emoji_path(intent)
-        exists = check_emoji_exists(intent)
+        path = get_sticker_path(intent)
+        exists = check_sticker_exists(intent)
         status = "✓" if exists else "✗"
         print(f"  {status} {intent} -> {path}")
 
@@ -327,10 +329,10 @@ if __name__ == "__main__":
 
     # 测试4：检查所有表情包是否存在
     print("\n测试4：检查表情包文件")
-    if EMOJI_DIR.exists():
+    if sticker_DIR.exists():
         missing = []
         for intent in INTENT_ROMAJI_MAP.keys():
-            if not check_emoji_exists(intent):
+            if not check_sticker_exists(intent):
                 missing.append(intent)
 
         if missing:
@@ -342,8 +344,8 @@ if __name__ == "__main__":
         else:
             print(f"  ✓ 所有70个表情包文件都存在！")
     else:
-        print(f"  ✗ 表情包目录不存在: {EMOJI_DIR}")
-        print(f"  请确保 emojis 文件夹与脚本在同一目录下")
+        print(f"  ✗ 表情包目录不存在: {sticker_DIR}")
+        print(f"  请确保 stickers 文件夹与脚本在同一目录下")
 
     print("\n" + "=" * 60)
     print("测试完成！")

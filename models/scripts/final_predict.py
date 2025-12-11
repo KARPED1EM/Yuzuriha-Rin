@@ -17,14 +17,14 @@ import os
 # 导入意图映射模块
 try:
     from intent_romaji_mapping import (
-        get_emoji_path,
-        check_emoji_exists,
+        get_sticker_path,
+        check_sticker_exists,
         INTENT_ROMAJI_MAP,
     )
 except ImportError:
     print("警告：无法导入 intent_romaji_mapping 模块，请确保文件在同一目录下")
-    get_emoji_path = None
-    check_emoji_exists = None
+    get_sticker_path = None
+    check_sticker_exists = None
     INTENT_ROMAJI_MAP = {}
 
 
@@ -55,7 +55,7 @@ NEGATIVE_EMOTIONS = ["sad", "angry", "anxious", "embarrassed", "tired"]
 # ============================================================================
 
 
-def should_send_emoji(emotion: Dict[str, str]) -> bool:
+def should_send_sticker(emotion: Dict[str, str]) -> bool:
     """
     判断是否应该发送表情包（基于情绪）
 
@@ -74,11 +74,11 @@ def should_send_emoji(emotion: Dict[str, str]) -> bool:
         True 如果应该发送表情包，否则 False
 
     Examples:
-        >>> should_send_emoji({"happy": "high"})
+        >>> should_send_sticker({"happy": "high"})
         True
-        >>> should_send_emoji({"serious": "low"})
+        >>> should_send_sticker({"serious": "low"})
         False
-        >>> should_send_emoji({"sad": "extreme"})
+        >>> should_send_sticker({"sad": "extreme"})
         False
     """
     # 规则1：严肃情绪，任何程度都不发送
@@ -227,13 +227,13 @@ def entry(msg: str, emotion: Dict[str, str]) -> Tuple[bool, str]:
                 至少包含一个情绪，数量不定
 
     Returns:
-        (should_send, emoji_path):
+        (should_send, sticker_path):
             - should_send: bool，是否应该发送表情包
-            - emoji_path: str，表情包的相对路径（如果不发送则为空字符串）
+            - sticker_path: str，表情包的相对路径（如果不发送则为空字符串）
 
     Examples:
         >>> entry("你好呀", {"happy": "high"})
-        (True, "emojis/zhaohu_yongyu.png")
+        (True, "stickers/zhaohu_yongyu.png")
 
         >>> entry("我很难过", {"sad": "extreme"})
         (False, "")
@@ -242,7 +242,7 @@ def entry(msg: str, emotion: Dict[str, str]) -> Tuple[bool, str]:
         (False, "")  # 置信度不足
     """
     # 步骤1：检查情绪是否适合发送表情包
-    if not should_send_emoji(emotion):
+    if not should_send_sticker(emotion):
         return False, ""
 
     # 步骤2：预测文本意图
@@ -258,19 +258,19 @@ def entry(msg: str, emotion: Dict[str, str]) -> Tuple[bool, str]:
         return False, ""
 
     # 步骤4：根据意图选择表情包
-    if get_emoji_path is None:
+    if get_sticker_path is None:
         print("错误：未加载 intent_romaji_mapping 模块")
         return False, ""
 
     # 获取表情包路径
-    emoji_path = get_emoji_path(intent)
+    sticker_path = get_sticker_path(intent)
 
     # 检查表情包文件是否存在
-    if emoji_path is None or not check_emoji_exists(intent):
+    if sticker_path is None or not check_sticker_exists(intent):
         return False, ""
 
     # 返回相对路径
-    return True, emoji_path
+    return True, sticker_path
 
 
 # ============================================================================
@@ -278,7 +278,7 @@ def entry(msg: str, emotion: Dict[str, str]) -> Tuple[bool, str]:
 # ============================================================================
 
 
-def get_emoji_path_absolute(intent: str) -> str:
+def get_sticker_path_absolute(intent: str) -> str:
     """
     获取表情包的绝对路径
 
@@ -288,9 +288,9 @@ def get_emoji_path_absolute(intent: str) -> str:
     Returns:
         表情包的绝对路径
     """
-    emoji_path = get_emoji_path(intent)
-    if emoji_path:
-        return str(Path(emoji_path).resolve())
+    sticker_path = get_sticker_path(intent)
+    if sticker_path:
+        return str(Path(sticker_path).resolve())
     return ""
 
 
@@ -327,14 +327,14 @@ def test_entry_function():
     print("-" * 60)
 
     for i, (msg, emotion, description) in enumerate(test_cases, 1):
-        should_send, emoji_path = entry(msg, emotion)
+        should_send, sticker_path = entry(msg, emotion)
 
         print(f"\n测试 {i}: {description}")
         print(f'  输入: "{msg}"')
         print(f"  情绪: {emotion}")
         print(f"  结果: {'✓ 发送' if should_send else '✗ 不发送'}")
         if should_send:
-            print(f"  表情: {emoji_path}")
+            print(f"  表情: {sticker_path}")
 
     print("\n" + "=" * 60)
     print("测试完成！")
