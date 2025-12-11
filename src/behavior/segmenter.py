@@ -31,7 +31,7 @@ class RuleBasedSegmenter(BaseSegmenter):
     This serves as a fallback and baseline until the mini model is ready.
     """
 
-    def __init__(self, max_length: int = 60):
+    def __init__(self, max_length: int):
         self.max_length = max_length
         self.split_tokens = set("。，,！？!?")
 
@@ -70,7 +70,7 @@ class SmartSegmenter(BaseSegmenter):
 
     def __init__(
         self,
-        max_length: int = 60,
+        max_length: int,
     ):
         self.rule_segmenter = RuleBasedSegmenter(max_length)
 

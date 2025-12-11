@@ -8,8 +8,8 @@ This module handles natural message behaviors including:
 - Pause duration prediction
 """
 
-from .coordinator import BehaviorCoordinator
-from .models import MessageSegment, BehaviorConfig, EmotionState, PlaybackAction
+from src.behavior.coordinator import BehaviorCoordinator
+from src.behavior.models import MessageSegment, BehaviorConfig, EmotionState, PlaybackAction
 
 __all__ = [
     "BehaviorCoordinator",

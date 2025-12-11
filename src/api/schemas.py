@@ -4,13 +4,13 @@ from typing import List, Literal, Optional
 
 
 class LLMConfig(BaseModel):
-    provider: Literal["deepseek", "openai", "anthropic", "custom"] = "deepseek"
-    api_key: str
+    provider: Optional[Literal["deepseek", "openai", "anthropic", "custom"]] = None
+    api_key: Optional[str] = None
     base_url: Optional[str] = None
-    model: str = "deepseek-chat"
-    persona: str = ""  # Will be populated from config defaults
-    character_name: str = "Rin"  # Character name for display only, not used in prompts
-    user_nickname: str = "鲨鲨"  # User's WeChat nickname
+    model: Optional[str] = None
+    persona: Optional[str] = None  # Will be populated from config defaults
+    character_name: Optional[str] = None  # Display only, not used in prompts
+    user_nickname: Optional[str] = None  # User's WeChat nickname
 
 
 class ChatMessage(BaseModel):
@@ -21,22 +21,22 @@ class ChatMessage(BaseModel):
 class BehaviorSettings(BaseModel):
     """Settings for message behavior engine"""
 
-    enable_segmentation: bool = True
-    enable_typo: bool = True
-    enable_recall: bool = True
-    enable_emotion_detection: bool = True
-    max_segment_length: int = Field(default=60, gt=0)
-    min_pause_duration: float = Field(default=0.4, ge=0.0)
-    max_pause_duration: float = Field(default=2.5, ge=0.0)
-    base_typo_rate: float = Field(default=0.08, ge=0.0, le=1.0)
-    typo_recall_rate: float = Field(default=0.4, ge=0.0, le=1.0)
+    enable_segmentation: Optional[bool] = None
+    enable_typo: Optional[bool] = None
+    enable_recall: Optional[bool] = None
+    enable_emotion_detection: Optional[bool] = None
+    max_segment_length: Optional[int] = Field(default=None, gt=0)
+    min_pause_duration: Optional[float] = Field(default=None, ge=0.0)
+    max_pause_duration: Optional[float] = Field(default=None, ge=0.0)
+    base_typo_rate: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    typo_recall_rate: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
 
 class ChatRequest(BaseModel):
     llm_config: LLMConfig
     messages: List[ChatMessage]
-    character_name: str = "Rin"
-    conversation_id: str = "default"
+    character_name: Optional[str] = None
+    conversation_id: Optional[str] = None
     behavior_settings: Optional[BehaviorSettings] = None
 
 
@@ -47,8 +47,8 @@ class MessageAction(BaseModel):
 
     type: Literal["send", "recall", "pause"]
     text: Optional[str] = None  # Text content for 'send' actions
-    duration: float = Field(
-        default=0.0, ge=0.0, description="Duration in seconds for this action"
+    duration: Optional[float] = Field(
+        default=None, ge=0.0, description="Duration in seconds for this action"
     )
     message_id: Optional[str] = Field(
         default=None, description="Unique id for send actions"

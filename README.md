@@ -185,8 +185,8 @@ Rie-Kugimiya/
 │   └── utils/            # 工具函数
 ├── frontend/             # Web前端
 │   ├── index.html
-│   ├── app.js
-│   └── styles.css
+│   ├── scripts/app.js
+│   └── styles/styles.css
 ├── data/                 # 数据目录
 │   └── rin_app.db       # SQLite数据库
 ├── tests/                # 单元测试

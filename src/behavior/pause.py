@@ -5,7 +5,7 @@ Generates random-but-bounded intervals between playback actions.
 """
 
 import random
-from .models import EmotionState
+from src.behavior.models import EmotionState
 
 
 class PausePredictor:

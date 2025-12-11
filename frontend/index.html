@@ -5,98 +5,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yuzuriha Rin Virtual Chat</title>
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles/styles.css">
 </head>
 
 <body>
     <div class="app-container">
-        <!-- Config Panel (overlay) -->
-        <div class="config-panel" id="configPanel">
-            <h2>⚙️ Configuration</h2>
-
-            <div class="form-group">
-                <label>LLM Provider</label>
-                <select id="provider">、
-                    <option value="deepseek">DeepSeek</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic (Claude)</option>
-                    <option value="custom">Custom (OpenAI-compatible)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>API Key</label>
-                <input type="password" id="apiKey" placeholder="sk-...">
-            </div>
-
-            <div class="form-group" id="baseUrlGroup" style="display: none;">
-                <label>Base URL</label>
-                <input type="text" id="baseUrl" placeholder="https://api.example.com/v1">
-            </div>
-
-            <div class="form-group">
-                <label>Model</label>
-                <input type="text" id="model" placeholder="Loading...">
-            </div>
-
-            <div class="form-group">
-                <label>角色人设</label>
-                <textarea id="personaInput" rows="4" placeholder="Loading..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label>Character Name</label>
-                <input type="text" id="characterName" placeholder="Loading...">
-            </div>
-
-            <div class="form-group">
-                <label>用户昵称</label>
-                <input type="text" id="userNickname" placeholder="用户">
-            </div>
-
-            <div class="form-group">
-                <label>用户头像</label>
-                <div class="avatar-config">
-                    <div class="avatar-preview-wrapper">
-                        <img id="avatarPreview" class="avatar-preview" src="/static/assets/avatar_user.png" alt="User Avatar">
-                    </div>
-                    <div class="avatar-actions">
-                        <input type="file" id="avatarInput" accept="image/png,image/jpeg,image/jpg,image/webp" style="display: none;">
-                        <button type="button" id="uploadAvatarBtn" class="btn-avatar btn-upload">选择图片</button>
-                        <button type="button" id="deleteAvatarBtn" class="btn-avatar btn-delete">恢复默认</button>
-                    </div>
-                    <div class="avatar-hint">支持 PNG、JPG、WEBP 格式，最大 5MB</div>
-                </div>
-            </div>
-
-            <div class="form-group inline">
-                <div>
-                    <label for="emotionThemeToggle">情绪主题光效</label>
-                    <div class="help-text">根据每次回复的情绪值，让界面边框发出柔和的情绪色光</div>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="emotionThemeToggle" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="form-group inline">
-                <div>
-                    <label for="debugModeToggle">调试模式</label>
-                    <div class="help-text">显示系统日志，包括行为序列、感情数据和LLM文本</div>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" id="debugModeToggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <button id="saveConfig" class="btn-primary">Save & Start Chat</button>
-        </div>
-
         <!-- Phone Container (always visible, centered) -->
         <div class="phone-container">
-            <div class="wechat-shell" id="wechatShell" style="display: none;">
+            <div class="wechat-shell hidden" id="wechatShell" role="application" aria-label="chat app">
                 <div class="wechat-screen">
                     <div class="wechat-top">
                         <div class="wechat-statusbar">
@@ -108,54 +24,63 @@
                             </div>
                             <div class="punch-hole" aria-hidden="true"></div>
                             <div class="status-right">
-                                <img src="/static/assets/signal.svg" alt="Signal"
+                                <img src="/static/images/status_bar_icon/signal.svg" alt="Signal"
                                     class="status-icon status-icon-signal">
-                                <img src="/static/assets/wifi.svg" alt="WiFi" class="status-icon status-icon-wifi">
-                                <img src="/static/assets/battery.svg" alt="Battery" class="status-icon battery-icon">
+                                <img src="/static/images/status_bar_icon/wifi.svg" alt="WiFi"
+                                    class="status-icon status-icon-wifi">
+                                <img src="/static/images/status_bar_icon/battery.svg" alt="Battery"
+                                    class="status-icon battery-icon">
                                 <span class="battery-percent">100%</span>
                             </div>
                         </div>
 
                         <div class="wechat-header">
-                        <button id="showConfig" class="back-button" aria-label="back"></button>
-                        <div class="header-info">
-                            <div class="contact-name" id="chatTitle">Rin</div>
-                        </div>
-                        <div class="menu-wrapper">
-                            <button class="menu-button" id="menuButton" aria-label="more actions" aria-haspopup="true"
-                                aria-expanded="false" title="更多">
-                                <span class="action-dot"></span>
-                                <span class="action-dot"></span>
-                                <span class="action-dot"></span>
-                            </button>
-                            <div class="menu-popover" id="menuPopover" role="menu" aria-hidden="true">
-                                <button class="menu-item" type="button" data-action="clear" role="menuitem">
-                                    <span class="menu-item-label">清空对话</span>
-                                    <span class="menu-item-desc">移除当前聊天记录</span>
+                            <button id="backButton" class="back-button" aria-label="back"></button>
+                            <div class="header-info">
+                                <div class="contact-name" id="chatTitle">Rin</div>
+                            </div>
+                            <div class="menu-wrapper">
+                                <button class="menu-button" id="menuButton" aria-label="more actions"
+                                    aria-haspopup="true" aria-expanded="false" title="更多">
+                                    <span class="action-dot"></span>
+                                    <span class="action-dot"></span>
+                                    <span class="action-dot"></span>
                                 </button>
-                                <button class="menu-item danger" type="button" data-action="terminate" role="menuitem">
-                                    <span class="menu-item-label">终止程序</span>
-                                    <span class="menu-item-desc">关闭后端与所有服务</span>
-                                </button>
+                                <div class="menu-popover" id="menuPopover" role="menu" aria-hidden="true">
+                                    <button class="menu-item" type="button" data-action="clear" role="menuitem">
+                                        <span class="menu-item-label">清空对话</span>
+                                        <span class="menu-item-desc">重新创建当前会话</span>
+                                    </button>
+                                    <button class="menu-item" type="button" data-action="character" role="menuitem">
+                                        <span class="menu-item-label">角色设置</span>
+                                        <span class="menu-item-desc">编辑人设与行为参数</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
                     <div class="wechat-main">
-                        <div class="messages" id="messages"></div>
-                        <button class="new-message-indicator" id="newMessageBtn" type="button" aria-label="新消息提醒">
-                            <span class="indicator-icon" aria-hidden="true"></span>
-                            <span class="indicator-text" id="newMessageText">1 条新消息</span>
-                        </button>
-                        <div class="typing-hint" id="typingHint">对方正在输入...</div>
+                        <!-- Session List View -->
+                        <div class="session-list-view hidden" id="sessionListView">
+                            <div class="session-list" id="sessionList"></div>
+                        </div>
+
+                        <!-- Chat View -->
+                        <div class="chat-view" id="chatView">
+                            <button class="new-message-indicator" id="newMessageBtn" type="button" aria-label="新消息提醒">
+                                <span class="indicator-icon" aria-hidden="true"></span>
+                                <span class="indicator-text" id="newMessageText">1 条新消息</span>
+                            </button>
+                            <div class="typing-hint" id="typingHint">对方正在输入...</div>
+                        </div>
                     </div>
 
                     <div class="wechat-bottom">
-                        <div class="wechat-input">
+                        <div class="wechat-input" id="wechatInput">
                             <button class="input-icon voice-btn" type="button" aria-label="voice"></button>
                             <div class="input-box">
-                                <textarea id="userInput" rows="1" disabled></textarea>
+                            <textarea id="userInput" rows="1" disabled aria-label="message input"></textarea>
                             </div>
                             <button class="input-icon emoji-btn" type="button" aria-label="emoji"></button>
                             <button class="input-icon plus-btn" type="button" aria-label="plus"></button>
@@ -168,12 +93,21 @@
         </div>
 
         <!-- Debug Log Panel (right side) -->
-        <div class="debug-log-panel" id="debugLogPanel" style="display: none;">
+        <div class="debug-log-panel hidden" id="debugLogPanel">
             <div class="debug-log-content" id="debugLogContent"></div>
         </div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <!-- Floating Settings Button -->
+    <button id="floatingSettingsBtn" class="floating-settings-btn hidden" aria-label="settings"></button>
+
+    <!-- Modal Root -->
+    <div id="modalRoot"></div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script type="module" src="/static/scripts/app.js"></script>
 </body>
 
 </html>

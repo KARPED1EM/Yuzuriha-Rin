@@ -5,13 +5,145 @@ Injects realistic typos based on emotion state and probability.
 """
 
 import random
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 import jieba
+from pypinyin import lazy_pinyin
 
-from .same_pinyin_finder import SamePinyinFinder
-from ..utils.logger import unified_logger, LogCategory
+from src.infrastructure.utils.logger import unified_logger, LogCategory
+
+
+@dataclass
+class SamePinyinFinder:
+    """Generate same-pinyin candidates for Chinese text."""
+
+    words: Iterable[str] = field(default_factory=list)
+
+    _pinyin_to_words: Dict[str, Set[str]] = field(init=False, default_factory=dict)
+    _pinyin_to_chars: Optional[Dict[str, Set[str]]] = field(init=False, default=None)
+
+    def __post_init__(self) -> None:
+        word_set: Set[str] = set()
+        for word in self.words:
+            if word is None:
+                continue
+            text = str(word).strip()
+            if not text:
+                continue
+            word_set.add(text)
+        self.words = word_set  # type: ignore[assignment]
+
+        for word in self.words:
+            pinyin_key = self.word_to_pinyin(word)
+            if not pinyin_key:
+                continue
+            self._pinyin_to_words.setdefault(pinyin_key, set()).add(word)
+
+    @classmethod
+    def from_dict_file(
+        cls,
+        path: str,
+        encoding: str = "utf-8",
+        separator: Optional[str] = None,
+        word_col: int = 0,
+    ) -> "SamePinyinFinder":
+        """Build from a jieba-style dict file."""
+        words: List[str] = []
+        with open(path, "r", encoding=encoding, errors="ignore") as file:
+            for line in file:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split() if separator is None else line.split(separator)
+                if len(parts) <= word_col:
+                    continue
+                word = parts[word_col].strip()
+                if word:
+                    words.append(word)
+        return cls(words=words)
+
+    @staticmethod
+    def word_to_pinyin(text: str) -> str:
+        """Convert text to a tone-less pinyin key."""
+        syllables = lazy_pinyin(text, errors="ignore")
+        return "".join(syllables)
+
+    def get_candidates(
+        self,
+        text: str,
+        *,
+        use_word_list: bool = True,
+        use_char_fallback: bool = True,
+        include_original: bool = False,
+        max_per_char: int = 20,
+    ) -> List[str]:
+        """Return same-pinyin word or char-level candidates."""
+        text = text.strip()
+        if not text:
+            return []
+
+        candidates: Set[str] = set()
+
+        if use_word_list and self._pinyin_to_words:
+            pinyin_key = self.word_to_pinyin(text)
+            if pinyin_key:
+                candidates.update(self._pinyin_to_words.get(pinyin_key, set()))
+
+        if use_char_fallback:
+            candidates.update(
+                self._char_level_candidates(text=text, max_per_char=max_per_char)
+            )
+
+        if not include_original:
+            candidates.discard(text)
+
+        return sorted(candidates)
+
+    def _ensure_char_index(self) -> None:
+        if self._pinyin_to_chars is not None:
+            return
+
+        mapping: Dict[str, Set[str]] = {}
+        for code in range(0x4E00, 0x9FFF + 1):
+            ch = chr(code)
+            p_list = lazy_pinyin(ch, errors="ignore")
+            if not p_list:
+                continue
+            pinyin_key = p_list[0]
+            if pinyin_key:
+                mapping.setdefault(pinyin_key, set()).add(ch)
+
+        self._pinyin_to_chars = mapping
+
+    def _char_level_candidates(self, text: str, max_per_char: int) -> Set[str]:
+        self._ensure_char_index()
+        assert self._pinyin_to_chars is not None
+
+        result: Set[str] = set()
+        for i, ch in enumerate(text):
+            if not ("\u4e00" <= ch <= "\u9fff"):
+                continue
+
+            p_list = lazy_pinyin(ch, errors="ignore")
+            if not p_list:
+                continue
+            pinyin_key = p_list[0]
+            same_chars = self._pinyin_to_chars.get(pinyin_key, set())
+            if not same_chars:
+                continue
+
+            count = 0
+            for alt in same_chars:
+                if alt == ch:
+                    continue
+                result.add(text[:i] + alt + text[i + 1 :])
+                count += 1
+                if count >= max_per_char:
+                    break
+
+        return result
 
 
 class TypoInjector:
@@ -88,7 +220,7 @@ class TypoInjector:
 
         return False, None, None, None
 
-    def should_recall_typo(self, recall_rate: float = 0.75) -> bool:
+    def should_recall_typo(self, recall_rate: float) -> bool:
         """Decide whether to recall and fix a typo."""
         return random.random() < recall_rate
 
@@ -218,7 +350,7 @@ class TypoInjector:
 
         project_root = Path(__file__).resolve().parent.parent.parent
         data_dir = project_root / "data"
-        for name in ("dict.txt.big", "dict.txt"):
+        for name in ("jieba/dict.txt.big", "jieba/dict.txt"):
             candidate = data_dir / name
             if candidate.exists():
                 return candidate

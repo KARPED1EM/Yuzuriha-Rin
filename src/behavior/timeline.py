@@ -1,14 +1,17 @@
 import random
-from typing import List
-from .models import PlaybackAction
-from ..config import typing_state_defaults
+from typing import List, Optional
+from src.behavior.models import PlaybackAction, TimelineConfig
+from src.config import typing_state_defaults
 
 
 class TimelineBuilder:
     """Build timeline with typing states and hesitation"""
 
-    def __init__(self):
-        self.config = typing_state_defaults
+    def __init__(self, config: Optional[TimelineConfig] = None):
+        if config:
+            self.config = config
+        else:
+            self.config = typing_state_defaults
 
     def build_timeline(self, actions: List[PlaybackAction]) -> List[PlaybackAction]:
         """Convert relative duration-based actions to absolute timestamp-based timeline"""

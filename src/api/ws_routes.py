@@ -1,435 +1,504 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime
-import asyncio
-import logging
-import os
-import base64
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from typing import Dict, Any, Optional
 
-from ..message_server import (
-    MessageService,
-    WebSocketManager,
-    Message,
-    MessageType,
-    TypingState,
+from src.infrastructure.database.connection import DatabaseConnection
+from src.infrastructure.database.repositories import (
+    MessageRepository,
+    CharacterRepository,
+    SessionRepository,
+    ConfigRepository,
 )
-from ..rin_client import RinClient
-from ..config import character_config, llm_defaults, ui_defaults
-from ..utils.logger import unified_logger
-
-logger = logging.getLogger(__name__)
+from src.services.messaging.message_service import MessageService
+from src.services.character.character_service import CharacterService
+from src.services.config.config_service import ConfigService
+from src.services.ai.rin_client import RinClient
+from src.infrastructure.network.websocket_manager import WebSocketManager
+from src.core.models.message import MessageType
+from src.api.schemas import LLMConfig
+from src.infrastructure.utils.logger import (
+    unified_logger,
+    broadcast_log_if_needed,
+    LogCategory,
+)
+from src.core.config import database_config, llm_defaults
+from src.core.models.constants import DEFAULT_USER_ID
 
 router = APIRouter()
 
-message_service = MessageService()
-ws_manager = WebSocketManager()
-rin_clients = {}
+conn_mgr: Optional[DatabaseConnection] = None
+message_repo: Optional[MessageRepository] = None
+character_repo: Optional[CharacterRepository] = None
+session_repo: Optional[SessionRepository] = None
+config_repo: Optional[ConfigRepository] = None
+message_service: Optional[MessageService] = None
+character_service: Optional[CharacterService] = None
+config_service: Optional[ConfigService] = None
+ws_manager: Optional[WebSocketManager] = None
+rin_clients: Dict[str, RinClient] = {}
 
 
-class AvatarUploadRequest(BaseModel):
-    user_id: str
-    avatar_data: str  # base64 encoded image data
+async def initialize_services():
+    global conn_mgr, message_repo, character_repo, session_repo, config_repo
+    global message_service, character_service, config_service, ws_manager
 
-# Set WebSocket manager for unified logger
-unified_logger.set_ws_manager(ws_manager)
+    if conn_mgr is None:
+        conn_mgr = DatabaseConnection(database_config.path)
 
+    # Initialize repos/services if missing (supports init order with global WS first).
+    if message_repo is None:
+        message_repo = MessageRepository(conn_mgr)
+    if character_repo is None:
+        character_repo = CharacterRepository(conn_mgr)
+    if session_repo is None:
+        session_repo = SessionRepository(conn_mgr)
+    if config_repo is None:
+        config_repo = ConfigRepository(conn_mgr)
 
-@router.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "ok",
-        "service": "Yuzuriha Rin Virtual Character System",
-        "active_conversations": len(ws_manager.active_connections),
-        "active_websockets": sum(
-            len(ws_set) for ws_set in ws_manager.active_connections.values()
-        ),
-    }
-
-
-@router.get("/config/defaults")
-async def get_config_defaults():
-    """Get default configuration values"""
-    return {
-        "llm": {
-            "provider": llm_defaults.provider,
-            "model_openai": llm_defaults.model_openai,
-            "model_anthropic": llm_defaults.model_anthropic,
-            "model_deepseek": llm_defaults.model_deepseek,
-            "model_custom": llm_defaults.model_custom,
-        },
-        "character": {
-            "name": character_config.default_name,
-            "persona": character_config.default_persona,
-        },
-        "ui": {
-            "enable_emotion_theme": ui_defaults.enable_emotion_theme,
-        },
-    }
-
-
-@router.get("/config")
-async def get_config():
-    """Get saved configuration from database"""
-    try:
-        config = message_service.db.get_config()
-        if config:
-            return JSONResponse(content=config)
-        else:
-            # Return defaults if no config saved
-            return JSONResponse(content={
-                "provider": llm_defaults.provider,
-                "model": llm_defaults.model_deepseek,
-                "persona": character_config.default_persona,
-                "character_name": character_config.default_name,
-                "user_nickname": "鲨鲨",
-                "enable_emotion_theme": ui_defaults.enable_emotion_theme,
-                "debug_mode": False
-            })
-    except Exception as e:
-        logger.error(f"Error getting config: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get config")
-
-
-class ConfigSaveRequest(BaseModel):
-    provider: str
-    api_key: str
-    base_url: Optional[str] = None
-    model: str
-    persona: str = ""
-    character_name: str = "Rin"
-    user_nickname: str = "鲨鲨"
-    enable_emotion_theme: bool = True
-    debug_mode: bool = False
-
-
-@router.post("/config")
-async def save_config(request: ConfigSaveRequest):
-    """Save configuration to database"""
-    try:
-        config_dict = request.dict()
-        success = message_service.db.save_config(config_dict)
-
-        if success:
-            return JSONResponse(content={"success": True, "message": "Config saved successfully"})
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save config")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error saving config: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to save config")
-
-
-@router.post("/shutdown")
-async def shutdown_server():
-    """Request graceful shutdown of the backend process"""
-    logger.warning("Shutdown requested via API, terminating process")
-
-    async def _terminate():
-        await asyncio.sleep(0.2)
-        os._exit(0)
-
-    asyncio.create_task(_terminate())
-    return {"status": "shutting_down"}
-
-
-def get_or_create_rin_client(conversation_id: str, llm_config: dict) -> RinClient:
-    """Get or create Rin client for conversation"""
-    if conversation_id not in rin_clients:
-        rin_clients[conversation_id] = RinClient(
-            message_service=message_service,
-            ws_manager=ws_manager,
-            llm_config=llm_config,
+    if message_service is None:
+        message_service = MessageService(message_repo)
+    if config_service is None:
+        config_service = ConfigService(config_repo)
+    if character_service is None:
+        character_service = CharacterService(
+            character_repo, session_repo, message_service, config_service
         )
-    return rin_clients[conversation_id]
+
+    # Always bind to the unified WebSocketManager (single instance per process).
+    existing_ws_mgr = getattr(unified_logger, "ws_manager", None)
+    if existing_ws_mgr:
+        ws_manager = existing_ws_mgr
+    else:
+        ws_manager = WebSocketManager()
+        unified_logger.set_ws_manager(ws_manager)
+
+    # Builtins only need initialization once.
+    if getattr(character_service, "_builtin_initialized", False) is not True:
+        await character_service.initialize_builtin_characters()
+        setattr(character_service, "_builtin_initialized", True)
+        log_entry = unified_logger.info(
+            "Services initialized", category=LogCategory.WEBSOCKET
+        )
+        await broadcast_log_if_needed(log_entry)
 
 
-@router.websocket("/ws/{conversation_id}")
+@router.websocket("/ws/{session_id}")
 async def websocket_endpoint(
-    websocket: WebSocket, conversation_id: str, user_id: str = Query(default="user")
+    websocket: WebSocket, session_id: str, user_id: str = Query(default=DEFAULT_USER_ID)
 ):
-    await ws_manager.connect(websocket, conversation_id, user_id)
+    await initialize_services()
+
+    await ws_manager.connect(websocket, session_id, user_id)
 
     try:
-        # 确保打招呼消息存在（使用默认名称，后续会通过init_rin更新）
-        await message_service.ensure_greeting_messages(
-            conversation_id,
-            assistant_name=character_config.default_name,
-            user_name="鲨鲨"
-        )
-
-        history = await message_service.get_messages(conversation_id)
-        history_event = message_service.create_history_event(history)
-        await ws_manager.send_to_websocket(websocket, history_event.model_dump())
+        messages = await message_service.get_messages(session_id)
+        history_event = {
+            "type": "history",
+            "data": {
+                "messages": [
+                    {
+                        "id": msg.id,
+                        "session_id": msg.session_id,
+                        "sender_id": msg.sender_id,
+                        "type": msg.type,
+                        "content": msg.content,
+                        "metadata": msg.metadata,
+                        "is_recalled": msg.is_recalled,
+                        "is_read": msg.is_read,
+                        "timestamp": msg.timestamp,
+                    }
+                    for msg in messages
+                ]
+            },
+        }
+        await ws_manager.send_to_websocket(websocket, history_event)
 
         while True:
             data = await websocket.receive_json()
-            await handle_client_message(websocket, conversation_id, user_id, data)
+            await handle_client_message(websocket, session_id, user_id, data)
 
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket, conversation_id)
-        await message_service.clear_user_typing_state(user_id, conversation_id)
+        ws_manager.disconnect(websocket, session_id)
+        log_entry = unified_logger.info(
+            f"WebSocket disconnected: {user_id} from {session_id}",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
 
     except Exception as e:
-        logger.error(f"WebSocket error: {e}", exc_info=True)
-        ws_manager.disconnect(websocket, conversation_id)
+        log_entry = unified_logger.error(
+            f"WebSocket error: {e}",
+            category=LogCategory.WEBSOCKET,
+            metadata={"exc_info": True},
+        )
+        await broadcast_log_if_needed(log_entry)
+        ws_manager.disconnect(websocket, session_id)
 
 
 async def handle_client_message(
-    websocket: WebSocket, conversation_id: str, user_id: str, data: dict
+    websocket: WebSocket, session_id: str, user_id: str, data: Dict[str, Any]
 ):
-    """Handle incoming client message"""
-    msg_type = data.get("type")
+    try:
+        msg_type = data.get("type")
 
-    if msg_type == "sync":
-        await handle_sync(websocket, conversation_id, data)
+        if msg_type == "send_message":
+            await handle_send_message(session_id, user_id, data)
 
-    elif msg_type == "message":
-        await handle_user_message(websocket, conversation_id, user_id, data)
+        elif msg_type == "set_typing":
+            await handle_set_typing(session_id, user_id, data)
 
-    elif msg_type == "typing":
-        await handle_typing_state(websocket, conversation_id, user_id, data)
+        elif msg_type == "recall_message":
+            await handle_recall_message(session_id, user_id, data)
 
-    elif msg_type == "recall":
-        await handle_recall(websocket, conversation_id, user_id, data)
+        elif msg_type == "sync_messages":
+            await handle_sync_messages(websocket, session_id, data)
 
-    elif msg_type == "clear":
-        await handle_clear(websocket, conversation_id, user_id)
+        elif msg_type == "switch_session":
+            await handle_switch_session(data)
 
-    elif msg_type == "init_rin":
-        await handle_init_rin(conversation_id, data)
+        elif msg_type == "clear_session":
+            await handle_clear_session(session_id)
 
-    elif msg_type == "debug_mode":
-        await handle_debug_mode(websocket, conversation_id, data)
+        elif msg_type == "init_rin":
+            await handle_init_rin(session_id, data)
+
+        elif msg_type == "mark_read":
+            await handle_mark_read(session_id, data)
+
+        else:
+            log_entry = unified_logger.warning(
+                f"Unknown message type: {msg_type}",
+                category=LogCategory.WEBSOCKET,
+            )
+            await broadcast_log_if_needed(log_entry)
+
+    except Exception as e:
+        log_entry = unified_logger.error(
+            f"Error handling client message: {e}",
+            category=LogCategory.WEBSOCKET,
+            metadata={"exc_info": True},
+        )
+        await broadcast_log_if_needed(log_entry)
+        error_event = {"type": "error", "data": {"message": str(e)}}
+        await ws_manager.send_to_websocket(websocket, error_event)
 
 
-async def handle_sync(websocket: WebSocket, conversation_id: str, data: dict):
-    """Handle incremental sync request"""
-    after_timestamp = data.get("after_timestamp", 0)
-
-    messages = await message_service.get_messages(
-        conversation_id, after_timestamp=after_timestamp
-    )
-
-    event = message_service.create_history_event(messages)
-    await ws_manager.send_to_websocket(websocket, event.model_dump())
-
-
-async def handle_user_message(
-    websocket: WebSocket, conversation_id: str, user_id: str, data: dict
-):
-    """Handle user message"""
-    from ..utils.logger import LogCategory, broadcast_log_if_needed
-
+async def handle_send_message(session_id: str, user_id: str, data: Dict[str, Any]):
     content = data.get("content", "").strip()
     if not content:
         return
 
-    await message_service.clear_user_typing_state(user_id, conversation_id)
-
-    message = Message(
-        id=data.get("id", f"msg-{datetime.now().timestamp()}"),
-        conversation_id=conversation_id,
+    messages = await message_service.send_message_with_time(
+        session_id=session_id,
         sender_id=user_id,
-        type=MessageType.TEXT,
+        message_type=MessageType.TEXT,
         content=content,
-        timestamp=datetime.now().timestamp(),
         metadata=data.get("metadata", {}),
     )
 
-    # Log user message
-    log_entry = unified_logger.info(
-        f"User message received: '{content[:50]}{'...' if len(content) > 50 else ''}'",
-        category=LogCategory.MESSAGE,
-        metadata={"content": content, "message_id": message.id}
-    )
-    await broadcast_log_if_needed(log_entry)
+    for message in messages:
+        event = {
+            "type": "message",
+            "data": {
+                "id": message.id,
+                "session_id": message.session_id,
+                "sender_id": message.sender_id,
+                "type": message.type,
+                "content": message.content,
+                "metadata": message.metadata,
+                "is_recalled": message.is_recalled,
+                "is_read": message.is_read,
+                "timestamp": message.timestamp,
+            },
+        }
+        await ws_manager.send_to_conversation(session_id, event)
 
-    await message_service.save_message(message)
-
-    event = message_service.create_message_event(message)
-    await ws_manager.send_to_conversation(
-        conversation_id, event.model_dump(), exclude_ws=None
-    )
-
-    if conversation_id in rin_clients:
-        rin_client = rin_clients[conversation_id]
-        await rin_client.process_user_message(message)
+    rin_client = rin_clients.get(session_id)
+    if rin_client:
+        await rin_client.process_user_message(messages[-1])
 
 
-async def handle_typing_state(
-    websocket: WebSocket, conversation_id: str, user_id: str, data: dict
-):
-    """Handle typing state update"""
+async def handle_set_typing(session_id: str, user_id: str, data: Dict[str, Any]):
     is_typing = data.get("is_typing", False)
 
-    typing_state = TypingState(
-        user_id=user_id,
-        conversation_id=conversation_id,
-        is_typing=is_typing,
-        timestamp=datetime.now().timestamp(),
-    )
+    typing_msg = await message_service.set_typing_state(session_id, user_id, is_typing)
 
-    await message_service.set_typing_state(typing_state)
+    event = {
+        "type": "message",
+        "data": {
+            "id": typing_msg.id,
+            "session_id": typing_msg.session_id,
+            "sender_id": typing_msg.sender_id,
+            "type": typing_msg.type,
+            "content": typing_msg.content,
+            "metadata": typing_msg.metadata,
+            "is_recalled": typing_msg.is_recalled,
+            "is_read": typing_msg.is_read,
+            "timestamp": typing_msg.timestamp,
+        },
+    }
+    await ws_manager.send_to_conversation(session_id, event, exclude_ws=None)
 
-    event = message_service.create_typing_event(typing_state)
-    await ws_manager.send_to_conversation(
-        conversation_id, event.model_dump(), exclude_ws=websocket
-    )
 
-
-async def handle_recall(
-    websocket: WebSocket, conversation_id: str, user_id: str, data: dict
-):
-    """
-    Handle message recall
-
-    创建一个新的recall_event消息并广播给所有客户端
-    """
+async def handle_recall_message(session_id: str, user_id: str, data: Dict[str, Any]):
     message_id = data.get("message_id")
+    timestamp = data.get("timestamp", 0)
+
     if not message_id:
         return
 
-    # 创建撤回事件消息
-    recall_event = await message_service.recall_message(
-        message_id, conversation_id, recalled_by=user_id
+    recall_msg = await message_service.recall_message(
+        session_id=session_id,
+        message_id=message_id,
+        timestamp=timestamp,
+        recalled_by=user_id,
     )
 
-    if recall_event:
-        # 广播撤回事件作为普通消息
-        event = message_service.create_message_event(recall_event)
-        await ws_manager.send_to_conversation(
-            conversation_id, event.model_dump(), exclude_ws=None
-        )
+    if recall_msg:
+        event = {
+            "type": "message",
+            "data": {
+                "id": recall_msg.id,
+                "session_id": recall_msg.session_id,
+                "sender_id": recall_msg.sender_id,
+                "type": recall_msg.type,
+                "content": recall_msg.content,
+                "metadata": recall_msg.metadata,
+                "is_recalled": recall_msg.is_recalled,
+                "is_read": recall_msg.is_read,
+                "timestamp": recall_msg.timestamp,
+            },
+        }
+        await ws_manager.send_to_conversation(session_id, event)
 
 
-async def handle_clear(websocket: WebSocket, conversation_id: str, user_id: str):
-    """Handle conversation clear"""
-    success = await message_service.clear_conversation(conversation_id)
+async def handle_sync_messages(
+    websocket: WebSocket, session_id: str, data: Dict[str, Any]
+):
+    after_timestamp = data.get("after_timestamp", 0)
 
-    if success:
-        # First, send clear event to all clients
-        event = message_service.create_clear_event(conversation_id)
-        await ws_manager.send_to_conversation(
-            conversation_id, event.model_dump(), exclude_ws=None
-        )
+    messages = await message_service.get_messages(session_id, after_timestamp)
 
-        # Get character name and user nickname from rin_clients if available
-        assistant_name = character_config.default_name
-        user_nickname = "鲨鲨"
-        if conversation_id in rin_clients:
-            rin_client = rin_clients[conversation_id]
-            if hasattr(rin_client, 'character_name'):
-                assistant_name = rin_client.character_name
-            # Get user nickname from llm_client config
-            if hasattr(rin_client, 'llm_client') and hasattr(rin_client.llm_client, 'config'):
-                user_nickname = rin_client.llm_client.config.user_nickname or "鲨鲨"
-
-        # Immediately create greeting messages after clearing
-        created = await message_service.ensure_greeting_messages(
-            conversation_id,
-            assistant_name=assistant_name,
-            user_name=user_nickname
-        )
-
-        # If greeting messages were created, broadcast them to all clients
-        if created:
-            greeting_messages = await message_service.get_messages(conversation_id)
-            for msg in greeting_messages:
-                msg_event = message_service.create_message_event(msg)
-                await ws_manager.send_to_conversation(
-                    conversation_id, msg_event.model_dump(), exclude_ws=None
-                )
+    history_event = {
+        "type": "history",
+        "data": {
+            "messages": [
+                {
+                    "id": msg.id,
+                    "session_id": msg.session_id,
+                    "sender_id": msg.sender_id,
+                    "type": msg.type,
+                    "content": msg.content,
+                    "metadata": msg.metadata,
+                    "is_recalled": msg.is_recalled,
+                    "is_read": msg.is_read,
+                    "timestamp": msg.timestamp,
+                }
+                for msg in messages
+            ]
+        },
+    }
+    await ws_manager.send_to_websocket(websocket, history_event)
 
 
-async def handle_init_rin(conversation_id: str, data: dict):
-    """Initialize Rin client for conversation"""
-    llm_config = data.get("llm_config", {})
-
-    if not llm_config:
-        logger.warning(f"Empty LLM config for conversation {conversation_id}")
+async def handle_switch_session(data: Dict[str, Any]):
+    new_session_id = data.get("session_id")
+    if not new_session_id:
         return
 
-    try:
-        rin_client = get_or_create_rin_client(conversation_id, llm_config)
-        await rin_client.start(conversation_id)
-        logger.info(f"Rin client initialized for conversation {conversation_id}")
-    except Exception as e:
-        logger.error(f"Failed to initialize Rin client: {e}", exc_info=True)
+    await character_service.switch_active_session(new_session_id)
 
 
-async def handle_debug_mode(websocket: WebSocket, conversation_id: str, data: dict):
-    """Handle debug mode toggle"""
-    from ..utils.logger import LogCategory
+async def handle_clear_session(session_id: str):
+    session = await session_repo.get_by_id(session_id)
+    if not session:
+        return
 
-    enabled = data.get("enabled", False)
+    new_session_id = await character_service.recreate_session(session.character_id)
+    if new_session_id:
+        rin_client = rin_clients.get(session_id)
+        if rin_client:
+            await rin_client.stop()
+            del rin_clients[session_id]
 
-    if enabled:
-        ws_manager.enable_debug_mode(websocket, conversation_id)
-        unified_logger.enable_debug_mode(True)
-        logger.info(f"Debug mode enabled for conversation {conversation_id}")
-    else:
-        ws_manager.disable_debug_mode(websocket, conversation_id)
-        unified_logger.enable_debug_mode(False)
-        logger.info(f"Debug mode disabled for conversation {conversation_id}")
-
-
-@router.get("/avatar/{user_id}")
-async def get_user_avatar(user_id: str):
-    """Get user avatar (base64 encoded)"""
-    try:
-        avatar_data = message_service.db.get_user_avatar(user_id)
-        if avatar_data:
-            return JSONResponse(content={"avatar_data": avatar_data})
-        else:
-            return JSONResponse(content={"avatar_data": None})
-    except Exception as e:
-        logger.error(f"Error getting avatar for user {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to get avatar")
+        event = {
+            "type": "session_recreated",
+            "data": {"old_session_id": session_id, "new_session_id": new_session_id},
+        }
+        await ws_manager.send_to_conversation(session_id, event)
 
 
-@router.post("/avatar")
-async def upload_user_avatar(request: AvatarUploadRequest):
-    """Upload user avatar (base64 encoded)"""
-    try:
-        # Validate base64 data
-        user_id = request.user_id
-        avatar_data = request.avatar_data
+async def handle_init_rin(session_id: str, data: Dict[str, Any]):
+    if session_id in rin_clients:
+        old_client = rin_clients.get(session_id)
+        if old_client:
+            await old_client.stop()
+        rin_clients.pop(session_id, None)
+        log_entry = unified_logger.info(
+            f"Rin reinitialized for session {session_id}",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
 
-        # Check if it's a valid base64 string and starts with data:image
-        if not avatar_data.startswith("data:image/"):
-            raise HTTPException(status_code=400, detail="Invalid image data format")
+    session = await session_repo.get_by_id(session_id)
+    if not session:
+        log_entry = unified_logger.error(
+            f"Session {session_id} not found",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
+        return
 
-        # Check file size (limit to 5MB base64 encoded)
-        if len(avatar_data) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="Avatar size too large (max 5MB)")
+    character = await character_service.get_character(session.character_id)
+    if not character:
+        log_entry = unified_logger.error(
+            f"Character {session.character_id} not found",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
+        return
 
-        success = message_service.db.save_user_avatar(user_id, avatar_data)
+    config = await config_service.get_all_config()
+    llm_config_dict = data.get("llm_config") or {}
 
-        if success:
-            return JSONResponse(content={"success": True, "message": "Avatar uploaded successfully"})
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save avatar")
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading avatar for user {request.user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to upload avatar")
+    resolved_provider = (
+        llm_config_dict.get("provider")
+        or config.get("llm_provider")
+        or llm_defaults.provider
+    )
+
+    resolved_model = llm_config_dict.get("model") or config.get("llm_model")
+    if not resolved_model:
+        resolved_model = getattr(
+            llm_defaults,
+            f"model_{resolved_provider}",
+            llm_defaults.model_custom,
+        )
+
+    resolved_api_key = llm_config_dict.get("api_key") or config.get("llm_api_key") or ""
+    if not resolved_api_key:
+        # Allow init to proceed so UI can load; LLM calls will fail until key set.
+        resolved_api_key = "DUMMY_API_KEY"
+        log_entry = unified_logger.warning(
+            "LLM api_key missing; Rin initialized in limited mode",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
+        await ws_manager.send_toast(
+            session_id,
+            "LLM API Key 未设置，请在设置中配置后再开始对话。",
+            level="warning",
+        )
+
+    llm_config = LLMConfig(
+        provider=resolved_provider,
+        api_key=resolved_api_key,
+        model=resolved_model,
+        base_url=llm_config_dict.get("base_url") or config.get("llm_base_url"),
+        persona=character.persona,
+        character_name=character.name,
+        user_nickname=llm_config_dict.get("user_nickname")
+        or config.get("user_nickname"),
+    )
+
+    rin_client = RinClient(
+        message_service=message_service,
+        ws_manager=ws_manager,
+        llm_config=llm_config,
+        character=character,
+    )
+
+    await rin_client.start(session_id)
+    rin_clients[session_id] = rin_client
+
+    log_entry = unified_logger.info(
+        f"Rin initialized for session {session_id} with character {character.name}",
+        category=LogCategory.WEBSOCKET,
+    )
+    await broadcast_log_if_needed(log_entry)
 
 
-@router.delete("/avatar/{user_id}")
-async def delete_user_avatar(user_id: str):
-    """Delete user avatar"""
-    try:
-        success = message_service.db.delete_user_avatar(user_id)
+async def handle_mark_read(session_id: str, data: Dict[str, Any]):
+    until_ts = float(data.get("until_timestamp") or 0)
+    last_read_ts = await message_service.mark_read_until(session_id, until_ts)
 
-        if success:
-            return JSONResponse(content={"success": True, "message": "Avatar deleted successfully"})
-        else:
-            raise HTTPException(status_code=500, detail="Failed to delete avatar")
-    except Exception as e:
-        logger.error(f"Error deleting avatar for user {user_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Failed to delete avatar")
+    event = {
+        "type": "read_state",
+        "data": {"session_id": session_id, "last_read_timestamp": last_read_ts},
+    }
+    await ws_manager.send_to_conversation(session_id, event)
+
+
+async def cleanup_resources():
+    """Clean up all resources when shutting down the application"""
+    log_entry = unified_logger.info(
+        "Starting cleanup of all resources",
+        category=LogCategory.WEBSOCKET,
+    )
+    await broadcast_log_if_needed(log_entry)
+
+    # Stop all RinClient instances
+    if rin_clients:
+        log_entry = unified_logger.info(
+            f"Stopping {len(rin_clients)} RinClient instances",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
+
+        for session_id, rin_client in list(rin_clients.items()):
+            try:
+                await rin_client.stop()
+                log_entry = unified_logger.info(
+                    f"Stopped RinClient for session {session_id}",
+                    category=LogCategory.WEBSOCKET,
+                )
+                await broadcast_log_if_needed(log_entry)
+            except Exception as e:
+                log_entry = unified_logger.error(
+                    f"Error stopping RinClient for session {session_id}: {e}",
+                    category=LogCategory.WEBSOCKET,
+                )
+                await broadcast_log_if_needed(log_entry)
+
+        rin_clients.clear()
+
+    # Close all WebSocket connections
+    if ws_manager:
+        log_entry = unified_logger.info(
+            "Closing all WebSocket connections",
+            category=LogCategory.WEBSOCKET,
+        )
+        await broadcast_log_if_needed(log_entry)
+
+        # Close all conversation WebSocket connections
+        for conversation_id in list(ws_manager.active_connections.keys()):
+            websockets = list(ws_manager.active_connections.get(conversation_id, set()))
+            for websocket in websockets:
+                try:
+                    # Send close code 1001 (going away) to gracefully close
+                    await websocket.close(code=1001, reason="Server shutting down")
+                except Exception as e:
+                    log_entry = unified_logger.error(
+                        f"Error closing WebSocket: {e}",
+                        category=LogCategory.WEBSOCKET,
+                    )
+                    await broadcast_log_if_needed(log_entry)
+
+        # Close all global WebSocket connections
+        for websocket in list(ws_manager.global_connections):
+            try:
+                await websocket.close(code=1001, reason="Server shutting down")
+            except Exception as e:
+                log_entry = unified_logger.error(
+                    f"Error closing global WebSocket: {e}",
+                    category=LogCategory.WEBSOCKET,
+                )
+                await broadcast_log_if_needed(log_entry)
+
+        ws_manager.active_connections.clear()
+        ws_manager.global_connections.clear()
+
+    log_entry = unified_logger.info(
+        "Cleanup completed",
+        category=LogCategory.WEBSOCKET,
+    )
+    await broadcast_log_if_needed(log_entry)

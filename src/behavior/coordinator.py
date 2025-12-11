@@ -7,13 +7,13 @@ Produces a one-shot playback sequence that mimics messaging apps such as WeChat.
 from typing import List
 import uuid
 
-from .models import BehaviorConfig, EmotionState, PlaybackAction
-from .segmenter import SmartSegmenter
-from .emotion import EmotionFetcher
-from .typo import TypoInjector
-from .pause import PausePredictor
-from .timeline import TimelineBuilder
-from ..utils.logger import unified_logger, LogCategory
+from src.behavior.models import BehaviorConfig, EmotionState, PlaybackAction, TimelineConfig
+from src.behavior.segmenter import SmartSegmenter
+from src.behavior.emotion import EmotionFetcher
+from src.behavior.typo import TypoInjector
+from src.behavior.pause import PausePredictor
+from src.behavior.timeline import TimelineBuilder
+from src.infrastructure.utils.logger import unified_logger, LogCategory
 
 
 class BehaviorCoordinator:
@@ -22,7 +22,7 @@ class BehaviorCoordinator:
     final playback timeline consumed by the frontend.
     """
 
-    def __init__(self, config: BehaviorConfig = None):
+    def __init__(self, config: BehaviorConfig = None, timeline_config: TimelineConfig = None):
         self.config = config or BehaviorConfig()
 
         self.segmenter = SmartSegmenter(
@@ -31,7 +31,7 @@ class BehaviorCoordinator:
         self.emotion_fetcher = EmotionFetcher()
         self.typo_injector = TypoInjector()
         self.pause_predictor = PausePredictor()
-        self.timeline_builder = TimelineBuilder()
+        self.timeline_builder = TimelineBuilder(timeline_config)
 
     def process_message(
         self, text: str, emotion_map: dict | None = None

@@ -7,7 +7,7 @@ We convert that structure into a primary EmotionState for downstream logic.
 
 from typing import Dict
 
-from .models import EmotionState
+from src.behavior.models import EmotionState
 
 
 class EmotionFetcher:
