@@ -151,8 +151,6 @@ class StickerSelector:
 
     @staticmethod
     def predict_intent(text: str) -> Tuple[str, float]:
-        text_lower = text.lower()
-
         if any(word in text for word in ["你好", "您好", "hi", "hello"]):
             return "招呼用语", 0.95
         elif any(word in text for word in ["谢谢", "感谢", "多谢"]):

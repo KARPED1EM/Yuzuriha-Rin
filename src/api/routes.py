@@ -1,5 +1,8 @@
 import logging
+import os
+from pathlib import Path
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List, get_args, get_origin
 from pydantic_core import PydanticUndefined
@@ -21,6 +24,8 @@ from src.utils.url_utils import sanitize_base_url
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+STICKER_BASE_DIR = Path(__file__).parent.parent.parent / "data" / "stickers"
 
 # Service instances
 db_connection: Optional[DatabaseConnection] = None
@@ -400,18 +405,12 @@ async def delete_user_avatar(user_id: str = DEFAULT_USER_ID):
 
 @router.get("/stickers/{path:path}")
 async def get_sticker(path: str):
-    import os
-    from fastapi.responses import FileResponse
+    sticker_path = (STICKER_BASE_DIR / path).resolve()
     
-    sticker_base = os.path.join(
-        os.path.dirname(__file__), "../../data/stickers"
-    )
-    sticker_path = os.path.normpath(os.path.join(sticker_base, path))
-    
-    if not sticker_path.startswith(os.path.normpath(sticker_base)):
+    if not str(sticker_path).startswith(str(STICKER_BASE_DIR.resolve())):
         raise HTTPException(status_code=403, detail="Access denied")
     
-    if not os.path.exists(sticker_path) or not os.path.isfile(sticker_path):
+    if not sticker_path.exists() or not sticker_path.is_file():
         raise HTTPException(status_code=404, detail="Sticker not found")
     
     return FileResponse(sticker_path)
