@@ -309,13 +309,6 @@ export async function showCharacterSettingsModal(character) {
           readonly ? "readonly" : ""
         }>${escapeHtml(character.persona)}</textarea>
       </div>
-      <div class="form-group">
-        <label>表情包</label>
-        <div class="tag-input" id="charEmoticonPacks" ${
-          readonly ? 'data-readonly="true"' : ""
-        }></div>
-        <div class="help-text">回车/逗号添加，点击标签删除</div>
-      </div>
       ${
         Array.isArray(behaviorFields) && behaviorFields.length
           ? renderCharacterBehaviorFields(character, behaviorFields, readonly)
@@ -354,10 +347,6 @@ export async function showCharacterSettingsModal(character) {
       return;
     }
 
-    const emoticonPacks = readTagInputValue(
-      /** @type {HTMLElement | null} */ (modal.querySelector("#charEmoticonPacks")),
-    );
-
     const behaviorParams = collectCharacterBehaviorParams(modal, behaviorFields);
     if (behaviorParams === null) return;
 
@@ -366,7 +355,6 @@ export async function showCharacterSettingsModal(character) {
         name,
         avatar,
         persona,
-        emoticon_packs: emoticonPacks,
         behavior_params: behaviorParams,
       });
       Object.assign(character, updated);
@@ -419,14 +407,6 @@ export async function showCharacterSettingsModal(character) {
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-
-  const emoticonContainer = /** @type {HTMLElement | null} */ (
-    modal.querySelector("#charEmoticonPacks")
-  );
-  if (emoticonContainer) {
-    const initial = Array.isArray(character?.emoticon_packs) ? character.emoticon_packs : [];
-    setupTagInput(emoticonContainer, initial, readonly);
-  }
 
   const charAvatarEditor = /** @type {HTMLElement | null} */ (
     modal.querySelector("#charAvatarEditor")
@@ -528,7 +508,15 @@ function renderBehaviorField(character, field, readonly) {
   }
 
   if (type.startsWith("list[")) {
-    return "";
+    return `
+      <div class="form-group">
+        <label>${label}</label>
+        <div class="tag-input" data-bfield="${escapeHtml(key)}" ${
+          readonly ? 'data-readonly="true"' : ""
+        }></div>
+        <div class="help-text">回车/逗号添加，点击标签删除</div>
+      </div>
+    `;
   }
 
   return `
@@ -712,6 +700,7 @@ function collectCharacterBehaviorParams(modal, fields) {
     }
 
     if (type.startsWith("list[")) {
+      out[key] = readTagInputValue(/** @type {HTMLElement} */ (el));
       continue;
     }
 
