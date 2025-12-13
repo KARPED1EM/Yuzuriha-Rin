@@ -1,5 +1,6 @@
 from typing import List
 import uuid
+import random
 
 from src.services.behavior.models import (
     BehaviorConfig,
@@ -12,6 +13,7 @@ from src.services.behavior.emotion import EmotionFetcher
 from src.services.behavior.typo import TypoInjector
 from src.services.behavior.pause import PausePredictor
 from src.services.behavior.timeline import TimelineBuilder
+from src.services.behavior.sticker import StickerSelector
 from src.infrastructure.utils.logger import unified_logger, LogCategory
 
 
@@ -23,6 +25,32 @@ class BehaviorCoordinator:
         self.segmenter = SmartSegmenter(max_length=self.config.max_segment_length)
         self.typo_injector = TypoInjector()
         self.timeline_builder = TimelineBuilder(timeline_config)
+        self.sticker_packs = []
+        self.sticker_send_probability = 0.4
+        self.sticker_confidence_threshold_positive = 0.6
+        self.sticker_confidence_threshold_neutral = 0.7
+        self.sticker_confidence_threshold_negative = 0.8
+        self.pending_log_entries = []
+
+    def set_sticker_packs(self, packs: List[str]):
+        self.sticker_packs = packs or []
+
+    def set_sticker_config(
+        self,
+        send_probability: float = 0.4,
+        threshold_positive: float = 0.6,
+        threshold_neutral: float = 0.7,
+        threshold_negative: float = 0.8,
+    ):
+        self.sticker_send_probability = send_probability
+        self.sticker_confidence_threshold_positive = threshold_positive
+        self.sticker_confidence_threshold_neutral = threshold_neutral
+        self.sticker_confidence_threshold_negative = threshold_negative
+
+    def get_and_clear_log_entries(self) -> List:
+        entries = self.pending_log_entries
+        self.pending_log_entries = []
+        return entries
 
     def process_message(
         self, text: str, emotion_map: dict | None = None
@@ -58,6 +86,22 @@ class BehaviorCoordinator:
                     emotion_map=normalized_emotion_map,
                 )
             )
+
+        should_send, sticker_path, log_entry = StickerSelector.select_sticker(
+            cleaned_input,
+            self.sticker_packs,
+            normalized_emotion_map,
+            self.sticker_send_probability,
+            self.sticker_confidence_threshold_positive,
+            self.sticker_confidence_threshold_neutral,
+            self.sticker_confidence_threshold_negative,
+        )
+        
+        if log_entry:
+            self.pending_log_entries.append(log_entry)
+
+        if should_send and sticker_path:
+            actions = self._insert_sticker_action(actions, sticker_path)
 
         timeline = self.timeline_builder.build_timeline(actions)
         return timeline
@@ -217,6 +261,40 @@ class BehaviorCoordinator:
         if not self.config.enable_emotion_fetch:
             return EmotionState.NEUTRAL
         return EmotionFetcher.fetch(emotion_map=emotion_map, fallback_text=text)
+
+    def _insert_sticker_action(
+        self, actions: List[PlaybackAction], sticker_path: str
+    ) -> List[PlaybackAction]:
+        send_actions = [i for i, a in enumerate(actions) if a.type == "send"]
+        if not send_actions:
+            return actions
+
+        insert_idx = random.choice(send_actions)
+        insert_after = random.choice([True, False])
+
+        if insert_after:
+            insert_idx += 1
+
+        wait_duration = random.uniform(1.0, 5.0)
+        wait_action = PlaybackAction(
+            type="pause",
+            duration=wait_duration,
+            metadata={"reason": "sticker_delay"},
+        )
+
+        sticker_action = PlaybackAction(
+            type="image",
+            text=sticker_path,
+            message_id=self._generate_message_id(),
+            metadata={"is_sticker": True},
+        )
+
+        new_actions = actions[:insert_idx]
+        new_actions.append(wait_action)
+        new_actions.append(sticker_action)
+        new_actions.extend(actions[insert_idx:])
+
+        return new_actions
 
     @staticmethod
     def _trim_trailing_punctuation(text: str) -> str:
