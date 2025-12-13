@@ -134,7 +134,6 @@ class UIDefaults(BaseSettings):
         }
     )
 
-    base_accent_color: str = "#07c160"
     enable_emotion_theme: bool = True
 
     class Config:
