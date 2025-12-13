@@ -456,13 +456,15 @@ function renderCharacterBehaviorFields(character, fields, readonly) {
     (grouped[f.group] ||= []).push(f);
   });
 
-  const order = ["behavior", "timeline"];
+  const order = ["behavior", "sticker", "timeline"];
   const sections = order
     .filter((g) => (grouped[g] || []).length)
     .map((group) => {
       const title =
         group === "timeline"
           ? "时间轴 / 打字状态"
+          : group === "sticker"
+          ? "表情包"
           : "行为参数";
       const inner = grouped[group]
         .map((f) => renderBehaviorField(character, f, readonly))
