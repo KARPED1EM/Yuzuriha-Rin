@@ -171,7 +171,6 @@ async def get_character_behavior_schema():
         "name",
         "avatar",
         "persona",
-        "sticker_packs",
         "is_builtin",
         "created_at",
         "updated_at",
@@ -193,12 +192,10 @@ async def get_character_behavior_schema():
             "typo_recall_rate",
             "recall_delay",
             "retype_delay",
-            "sticker_send_probability",
-            "sticker_confidence_threshold_positive",
-            "sticker_confidence_threshold_neutral",
-            "sticker_confidence_threshold_negative",
         }:
             group = "behavior"
+        elif key.startswith("sticker_") or key == "sticker_packs":
+            group = "sticker"
         else:
             group = "timeline"
 
