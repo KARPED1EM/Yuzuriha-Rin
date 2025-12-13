@@ -1818,7 +1818,7 @@ textarea {
     width: 48px;
     height: 48px;
     border: none;
-    background: #06c15f;
+    background-color: #06c15f;
     background-image: url("/static/images/settings.svg");
     background-repeat: no-repeat;
     background-position: center;
