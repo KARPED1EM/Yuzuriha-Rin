@@ -5,7 +5,7 @@ let zoomInstance = null;
 /**
  * Initialize medium-zoom for image messages only
  */
-export function initImageZoom() {
+function initImageZoom() {
   if (zoomInstance) {
     return zoomInstance;
   }
@@ -29,20 +29,27 @@ export function initImageZoom() {
 }
 
 /**
+ * Ensure zoom instance is initialized
+ */
+function ensureZoomInstance() {
+  if (!zoomInstance) {
+    initImageZoom();
+  }
+  return zoomInstance;
+}
+
+/**
  * Attach zoom to a specific image message element
  * @param {HTMLImageElement} img - The image element to make zoomable
  */
 export function attachZoomToImage(img) {
-  if (!zoomInstance) {
-    initImageZoom();
-  }
-
-  if (!zoomInstance) return;
+  const zoom = ensureZoomInstance();
+  if (!zoom) return;
 
   // Only attach if it's an image inside a message-bubble with message-image class
-  const bubble = img.closest(".message-bubble.message-image");
-  if (bubble && img.parentElement === bubble) {
-    zoomInstance.attach(img);
+  const parent = img.parentElement;
+  if (parent?.classList.contains("message-bubble") && parent?.classList.contains("message-image")) {
+    zoom.attach(img);
   }
 }
 
@@ -51,15 +58,12 @@ export function attachZoomToImage(img) {
  * @param {HTMLElement} container - The container with message elements
  */
 export function attachZoomToContainer(container) {
-  if (!zoomInstance) {
-    initImageZoom();
-  }
-
-  if (!zoomInstance) return;
+  const zoom = ensureZoomInstance();
+  if (!zoom) return;
 
   // Select only images that are direct children of .message-bubble.message-image
   const imageMessages = container.querySelectorAll(".message-bubble.message-image > img");
   if (imageMessages.length > 0) {
-    zoomInstance.attach(imageMessages);
+    zoom.attach(imageMessages);
   }
 }
