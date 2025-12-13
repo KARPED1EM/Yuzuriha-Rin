@@ -25,15 +25,6 @@ export async function fetchSessions() {
   return data.sessions || [];
 }
 
-export async function fetchActiveSession() {
-  const data = await fetchJson("/api/sessions/active");
-  return data.session || null;
-}
-
-export async function activateSession(sessionId) {
-  await fetchJson(`/api/sessions/${sessionId}/activate`, { method: "POST" });
-}
-
 /**
  * Incremental message sync over HTTP.
  * @param {string} sessionId

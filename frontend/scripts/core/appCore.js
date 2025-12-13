@@ -67,11 +67,10 @@ export function createApp() {
 
   async function fullSync() {
     try {
-      const [characters, sessions, config, activeSession] = await Promise.all([
+      const [characters, sessions, config] = await Promise.all([
         api.fetchCharacters(),
         api.fetchSessions(),
         api.fetchConfig(),
-        api.fetchActiveSession(),
       ]);
 
       state.characters = characters;
@@ -79,13 +78,7 @@ export function createApp() {
       state.config = config;
       state.userAvatar = await api.fetchUserAvatar();
 
-      const activeId =
-        activeSession?.id ||
-        sessions.find((s) => s.is_active)?.id ||
-        sessions[0]?.id ||
-        null;
-
-      setActiveSessionId(activeId);
+      setActiveSessionId(null);
       ensureSessionConnections();
       saveStateToStorage();
       return true;
@@ -227,10 +220,8 @@ export function createApp() {
 
         const idx = state.sessions.findIndex((s) => s.id === old_session_id);
         if (idx >= 0) {
-          const wasActive = Boolean(state.sessions[idx].is_active);
-          for (const s of state.sessions) s.is_active = false;
           state.sessions[idx].id = new_session_id;
-          state.sessions[idx].is_active = wasActive;
+          state.sessions[idx].is_active = false;
         }
 
         // Drop old cache entirely; the new session will deliver a fresh history.

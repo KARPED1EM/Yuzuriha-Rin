@@ -56,7 +56,7 @@ class CharacterService:
                 await self.character_repo.create(BUILTIN_RIN)
                 session_id = f"session-{uuid.uuid4().hex[:12]}"
                 session = Session(
-                    id=session_id, character_id=BUILTIN_RIN.id, is_active=True
+                    id=session_id, character_id=BUILTIN_RIN.id, is_active=False
                 )
                 await self.session_repo.create(session)
                 await self.message_service.create_session(
@@ -76,13 +76,6 @@ class CharacterService:
                     session_id, BUILTIN_ABAI.name, await self._get_user_nickname()
                 )
                 logger.info("Created builtin character Abai with session")
-
-            active_session = await self.session_repo.get_active_session()
-            if not active_session:
-                rin_session = await self.session_repo.get_by_character(BUILTIN_RIN.id)
-                if rin_session:
-                    await self.session_repo.set_active_session(rin_session.id)
-                    logger.info("Set Rin session as active")
 
         except Exception as e:
             logger.error(f"Error initializing builtin characters: {e}", exc_info=True)
@@ -174,7 +167,7 @@ class CharacterService:
             session = Session(
                 id=new_session_id,
                 character_id=character_id,
-                is_active=old_session.is_active if old_session else False,
+                is_active=False,
             )
             await self.session_repo.create(session)
             await self.message_service.create_session(

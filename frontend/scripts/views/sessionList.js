@@ -1,7 +1,6 @@
 // @ts-check
 
 import { state, saveStateToStorage, setActiveSessionId } from "../core/state.js";
-import * as api from "../core/api.js";
 import { renderChatSession, showChatSession, showChatView, ensureChatSessionContainer } from "./chatView.js";
 import { formatSessionTimestamp } from "../utils/time.js";
 import { clearEmotionTheme } from "../ui/emotionTheme.js";
@@ -116,8 +115,6 @@ function buildSessionItem(session, character) {
     const switching = state.activeSessionId !== session.id;
     if (switching) {
       setActiveSessionId(session.id);
-      // Fire-and-forget backend activation to keep UI smooth.
-      api.activateSession(session.id).catch(() => {});
     }
     showChatView();
     ensureChatSessionContainer(session.id);

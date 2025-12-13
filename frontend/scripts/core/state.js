@@ -7,7 +7,6 @@ const STORAGE_KEYS = {
   characters: "rin_characters",
   sessions: "rin_sessions",
   messages: "rin_messages",
-  activeSessionId: "rin_active_session_id",
   lastServerHash: "rin_last_server_hash",
   readTimestamps: "rin_read_timestamps",
   userAvatar: "rin_user_avatar",
@@ -83,7 +82,6 @@ export function loadStateFromStorage() {
     const rawChars = localStorage.getItem(STORAGE_KEYS.characters);
     const rawSessions = localStorage.getItem(STORAGE_KEYS.sessions);
     const rawMessages = localStorage.getItem(STORAGE_KEYS.messages);
-    const rawActive = localStorage.getItem(STORAGE_KEYS.activeSessionId);
     const rawHash = localStorage.getItem(STORAGE_KEYS.lastServerHash);
     const rawRead = localStorage.getItem(STORAGE_KEYS.readTimestamps);
     const rawAvatar = localStorage.getItem(STORAGE_KEYS.userAvatar);
@@ -95,7 +93,7 @@ export function loadStateFromStorage() {
     }
     characters = rawChars ? JSON.parse(rawChars) : [];
     sessions = rawSessions ? JSON.parse(rawSessions) : [];
-    activeSessionId = rawActive || null;
+    activeSessionId = null;
     lastServerHash = rawHash || null;
     userAvatar = rawAvatar || null;
 
@@ -132,10 +130,6 @@ export function saveStateToStorage() {
     localStorage.setItem(STORAGE_KEYS.config, JSON.stringify(persistConfig));
     localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(characters));
     localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(sessions));
-    localStorage.setItem(
-      STORAGE_KEYS.activeSessionId,
-      activeSessionId || "",
-    );
     localStorage.setItem(
       STORAGE_KEYS.lastServerHash,
       lastServerHash || "",
