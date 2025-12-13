@@ -142,7 +142,7 @@ export function mountAvatarEditor(host, opts) {
               `
               : `
                 <div class="avatar-row">
-                  <div class="avatar-hint">当前使用默认头像</div>
+                  <div class="avatar-hint">使用默认头像</div>
                 </div>
               `
           }
