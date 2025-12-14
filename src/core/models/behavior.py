@@ -1,9 +1,13 @@
+"""
+Behavior system models and constants.
+"""
 from pydantic import BaseModel, Field
 from typing import Any, Dict, Literal, Optional
 from enum import Enum
 
 
 class EmotionState(str, Enum):
+    """Emotion states for character behavior."""
     NEUTRAL = "neutral"
     HAPPY = "happy"
     EXCITED = "excited"
@@ -37,11 +41,13 @@ EMOTION_PAUSE_MULTIPLIERS = {
 
 
 class MessageSegment(BaseModel):
+    """A segment of a message for behavior processing."""
     text: str
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
 class PlaybackAction(BaseModel):
+    """An action in the message playback timeline."""
     type: Literal["send", "pause", "recall", "typing_start", "typing_end", "wait", "image"]
     text: Optional[str] = None
     timestamp: float = Field(default=0.0, ge=0.0)

@@ -5,7 +5,7 @@ from typing import List, Any
 from src.services.ai.llm_client import LLMClient
 from src.api.schemas import LLMConfig, ChatMessage
 from src.services.behavior.coordinator import BehaviorCoordinator
-from src.services.behavior.models import PlaybackAction
+from src.core.models.behavior import PlaybackAction
 from src.services.messaging.message_service import MessageService
 from src.core.models.message import Message, MessageType
 from src.core.models.character import Character
