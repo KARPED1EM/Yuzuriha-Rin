@@ -382,7 +382,8 @@ class SessionClient:
 
         Rules:
         - Filter out SYSTEM_TYPING messages.
-        - Filter out recalled messages.
+        - Filter out SYSTEM_RECALL messages.
+        - Keep recalled messages but add a system message after them indicating recall.
         - Keep all 3 roles' messages (system/user/assistant), except the greeting hijack:
           the initial 5 greeting messages (time + hints + "I am ...") are replaced with:
             1) the first system-time message
@@ -432,9 +433,12 @@ class SessionClient:
             start_idx = 5
 
         for msg in history[start_idx:]:
-            if msg.is_recalled:
-                continue
+            # Skip SYSTEM_TYPING messages
             if msg.type == MessageType.SYSTEM_TYPING:
+                continue
+            
+            # Skip SYSTEM_RECALL messages
+            if msg.type == MessageType.SYSTEM_RECALL:
                 continue
 
             role: str
@@ -453,6 +457,10 @@ class SessionClient:
 
             if content.strip():
                 out.append(ChatMessage(role=role, content=content))
+            
+            # If this message was recalled, add a system message indicating it
+            if msg.is_recalled:
+                out.append(ChatMessage(role="system", content="系统提示：上一条消息已被撤回。"))
 
         return out
 
@@ -468,8 +476,6 @@ class SessionClient:
             return self._format_system_time(msg.timestamp)
         if msg.type == MessageType.SYSTEM_HINT:
             return msg.content or ""
-        if msg.type == MessageType.SYSTEM_RECALL:
-            return "系统提示：对方撤回了一条消息。"
         if msg.type == MessageType.SYSTEM_EMOTION:
             meta = msg.metadata or {}
             parts = [f"{k}={v}" for k, v in meta.items()]

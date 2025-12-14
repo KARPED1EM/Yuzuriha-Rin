@@ -91,6 +91,13 @@ export function createApp() {
   }
 
   async function incrementalMessageSync() {
+    appendDebugLog({
+      timestamp: Date.now() / 1000,
+      level: "info",
+      category: "sync",
+      message: "Starting incremental message sync",
+    });
+
     for (const session of state.sessions) {
       const cached = state.messageCache.get(session.id) || [];
       const lastTs =
@@ -99,7 +106,19 @@ export function createApp() {
       try {
         const messages = await api.fetchMessages(session.id, lastTs);
         if (messages.length > 0) {
+          appendDebugLog({
+            timestamp: Date.now() / 1000,
+            level: "info",
+            category: "sync",
+            message: `Incremental sync fetched ${messages.length} message(s) for session ${session.id}`,
+          });
           upsertMessages(session.id, messages);
+          
+          // Re-render the session if it's currently active
+          if (session.id === state.activeSessionId && !isChatViewHidden()) {
+            ensureChatSessionContainer(session.id);
+            renderChatSession(session.id, { scrollOnEnter: false });
+          }
         }
 
         const lastReadFromServer = getLastReadFromMessages(
@@ -113,6 +132,14 @@ export function createApp() {
       }
     }
     saveStateToStorage();
+    renderSessionListView();
+    
+    appendDebugLog({
+      timestamp: Date.now() / 1000,
+      level: "info",
+      category: "sync",
+      message: "Incremental message sync completed",
+    });
   }
 
   function getLastReadFromMessages(messages) {
@@ -142,6 +169,18 @@ export function createApp() {
       client.onMessage((event) => handleWsMessage(event, session.id));
       client.onOpen(() => {
         reconnectController.markConnected(session.id);
+        
+        // Perform incremental sync on reconnection to fetch any missed messages
+        appendDebugLog({
+          timestamp: Date.now() / 1000,
+          level: "info",
+          category: "sync",
+          message: `WebSocket reconnected for session ${session.id}, triggering incremental sync`,
+        });
+        incrementalMessageSync().catch(() => {
+          // Ignore errors during reconnection sync
+        });
+        
         if (isConfigValid(state.config)) {
           client.initCharacter(state.config);
         }

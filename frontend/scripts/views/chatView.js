@@ -149,17 +149,34 @@ export function renderChatSession(sessionId, opts = {}) {
   const wasAtBottom = isAtBottom(container);
 
   container.innerHTML = "";
-  const effective = messages.filter((m) => !m.is_recalled);
 
   let latestEmotionMap = null;
 
-  for (const msg of effective) {
+  for (const msg of messages) {
     if (msg.type === "system-emotion") {
       latestEmotionMap = msg.metadata;
       continue;
     }
     if (msg.type === "system-typing") {
       updateTypingIndicator(sessionId, msg.metadata);
+      continue;
+    }
+    
+    // Skip SYSTEM_RECALL messages - they are handled by marking target messages as recalled
+    if (msg.type === "system-recall") {
+      continue;
+    }
+
+    // Handle recalled messages
+    if (msg.is_recalled) {
+      // For system messages, simply don't show them
+      if (msg.sender_id === "system") {
+        continue;
+      }
+      // For user and assistant messages, show a recall hint
+      if (msg.sender_id === "user" || msg.sender_id === "assistant") {
+        container.appendChild(buildRecallHint(sessionId, msg));
+      }
       continue;
     }
 
@@ -169,10 +186,6 @@ export function renderChatSession(sessionId, opts = {}) {
     }
     if (msg.type === "system-hint") {
       container.appendChild(buildHintMessage(msg));
-      continue;
-    }
-    if (msg.type === "system-recall") {
-      container.appendChild(buildRecallNotice(msg));
       continue;
     }
 
@@ -287,10 +300,20 @@ function buildHintMessage(msg) {
   return div;
 }
 
-function buildRecallNotice() {
+function buildRecallHint(sessionId, msg) {
   const div = document.createElement("div");
   div.className = "system-hint";
-  div.textContent = "Message recalled";
+  
+  // Get the character name for the session
+  const session = state.sessions.find((s) => s.id === sessionId);
+  const character = session
+    ? state.characters.find((c) => c.id === session.character_id)
+    : null;
+  const characterName = character?.name || "对方";
+  
+  // Use character name for assistant messages, "你" for user messages
+  const whoRecalled = msg.sender_id === "user" ? "你" : `"${characterName}"`;
+  div.textContent = `${whoRecalled} 撤回了一条消息`;
   return div;
 }
 

@@ -171,10 +171,24 @@ export function upsertMessages(sessionId, messages) {
   if (!sessionId) return;
   const existing = messageCache.get(sessionId) || [];
   const map = new Map(existing.map((m) => [m.id, m]));
+  
+  // First, add all messages to the map
   for (const msg of messages) {
     if (!msg || !msg.id) continue;
     map.set(msg.id, msg);
   }
+  
+  // Then, handle SYSTEM_RECALL messages to mark target messages as recalled
+  for (const msg of messages) {
+    if (msg && msg.type === "system-recall" && msg.metadata?.target_message_id) {
+      const targetId = msg.metadata.target_message_id;
+      const targetMsg = map.get(targetId);
+      if (targetMsg) {
+        targetMsg.is_recalled = true;
+      }
+    }
+  }
+  
   const merged = Array.from(map.values()).sort(
     (a, b) => a.timestamp - b.timestamp,
   );
