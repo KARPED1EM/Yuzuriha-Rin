@@ -36,7 +36,7 @@ class UnifiedLogger:
     Unified logging system that supports both standard logging and WebSocket broadcasting
     """
 
-    def __init__(self, name: str = "rin"):
+    def __init__(self, name: str = "yuzuriha-rin"):
         self.logger = logging.getLogger(name)
         self.ws_manager = None
         self.debug_mode_enabled = False
