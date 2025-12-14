@@ -190,6 +190,10 @@ export function renderChatSession(sessionId, opts = {}) {
       // Don't render blocked messages, just track the state
       continue;
     }
+    if (msg.type === "system-tool") {
+      // Don't render tool messages, only used in LLM history
+      continue;
+    }
 
     // Check if this message is after block
     const isAfterBlock = isBlocked && blockTimestamp !== null && msg.timestamp > blockTimestamp;

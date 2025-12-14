@@ -15,6 +15,7 @@ class MessageType(str, Enum):
     SYSTEM_EMOTION = "system-emotion"
     SYSTEM_TYPING = "system-typing"
     SYSTEM_BLOCKED = "system-blocked"
+    SYSTEM_TOOL = "system-tool"
 
 
 # System Role messages that are allowed to enter the session stream.
@@ -25,6 +26,7 @@ ALLOWED_SYSTEM_MESSAGE_TYPES = {
     MessageType.SYSTEM_EMOTION,
     MessageType.SYSTEM_TYPING,
     MessageType.SYSTEM_BLOCKED,
+    MessageType.SYSTEM_TOOL,
 }
 
 
