@@ -73,6 +73,17 @@ class SessionClient:
         logger.info(f"Character configuration updated for session {self.session_id}")
 
     async def process_user_message(self, user_message: Message):
+        """Process a user message and generate a response."""
+        if not self._running:
+            return
+        
+        # Call internal method with recursion limit
+        await self._process_with_tool_handling(user_message, max_tool_iterations=3)
+
+    async def _process_with_tool_handling(
+        self, user_message: Message, max_tool_iterations: int = 3
+    ):
+        """Process message with tool call support and recursion limit."""
         if not self._running:
             return
 
@@ -113,13 +124,31 @@ class SessionClient:
 
             # Handle tool calls if present
             if llm_response.tool_calls:
+                if max_tool_iterations <= 0:
+                    log_entry = unified_logger.warning(
+                        "Max tool call iterations reached",
+                        category=LogCategory.LLM,
+                        metadata={
+                            "session_id": user_message.session_id,
+                        },
+                    )
+                    await broadcast_log_if_needed(log_entry)
+                    await self.ws_manager.send_toast(
+                        user_message.session_id,
+                        "工具调用次数超限，本次不处理",
+                        level="warning",
+                    )
+                    return
+                
                 await self._handle_tool_calls(
                     user_message.session_id, 
                     llm_response.tool_calls,
                     history
                 )
                 # After handling tools, call LLM again to get actual response
-                return await self.process_user_message(user_message)
+                return await self._process_with_tool_handling(
+                    user_message, max_tool_iterations - 1
+                )
 
             # Determine the emotion_map to use
             emotion_map_to_use = llm_response.emotion_map
