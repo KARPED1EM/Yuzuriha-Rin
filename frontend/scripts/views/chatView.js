@@ -176,7 +176,6 @@ export function renderChatSession(sessionId, opts = {}) {
       // For user and assistant messages, show a recall hint
       if (msg.sender_id === "user" || msg.sender_id === "assistant") {
         container.appendChild(buildRecallHint(sessionId, msg));
-        continue;
       }
       continue;
     }
