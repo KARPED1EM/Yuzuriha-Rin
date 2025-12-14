@@ -145,7 +145,8 @@ class SessionClient:
                     llm_response.tool_calls,
                     history
                 )
-                # After handling tools, call LLM again to get actual response
+                # After handling tools, call LLM again to get actual response.
+                # History will be re-fetched in the recursive call, including new SYSTEM_TOOL messages.
                 return await self._process_with_tool_handling(
                     user_message, max_tool_iterations - 1
                 )
@@ -288,6 +289,9 @@ class SessionClient:
         """Execute tool calls and store results in database as SYSTEM_TOOL messages."""
         for tool_call in tool_calls:
             if not isinstance(tool_call, dict):
+                logger.warning(
+                    f"Invalid tool_call format (expected dict): {type(tool_call)}"
+                )
                 continue
             
             tool_name = tool_call.get("name", "")
