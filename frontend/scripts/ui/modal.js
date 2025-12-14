@@ -150,8 +150,8 @@ export function showSettingsModal(forceOpen) {
 function getSettingsContent() {
   const protocol = state.config.llm_protocol || "completions";
   const apiKey = state.config.llm_api_key || "";
-  const model = state.config.llm_model || "";
-  const baseUrl = normalizeBaseUrl(state.config.llm_base_url) || "";
+  const model = state.config.llm_model || "deepseek-chat";
+  const baseUrl = normalizeBaseUrl(state.config.llm_base_url) || "https://api.deepseek.com";
   const temperature = state.config.llm_temperature || "";
   const maxTokens = state.config.llm_max_tokens || "1000";
   const nickname = state.config.user_nickname || "";
@@ -176,10 +176,10 @@ function getSettingsContent() {
           id="settingsBaseUrl"
           type="text"
           value="${baseUrl}"
-          placeholder="必填，例如 https://api.openai.com/v1"
+          placeholder="https://api.deepseek.com"
         />
         <div class="help-text">
-          API 服务的基础地址，必填项。
+          API 服务的基础地址，默认 https://api.deepseek.com
         </div>
       </div>
       <div class="form-group">
@@ -188,7 +188,7 @@ function getSettingsContent() {
       </div>
       <div class="form-group">
         <label>模型</label>
-        <input id="settingsModel" type="text" value="${model}" placeholder="必填" />
+        <input id="settingsModel" type="text" value="${model}" placeholder="deepseek-chat" />
       </div>
       <div class="form-group">
         <label>Temperature（可选）</label>
@@ -237,7 +237,7 @@ function getSettingsContent() {
 async function saveSettings(modal) {
   const protocol = modal.querySelector("#settingsProtocol")?.value;
   const apiKey = modal.querySelector("#settingsApiKey")?.value?.trim();
-  const model = modal.querySelector("#settingsModel")?.value?.trim();
+  const modelRaw = modal.querySelector("#settingsModel")?.value?.trim();
   const rawBaseUrl = modal.querySelector("#settingsBaseUrl")?.value?.trim();
   const temperatureRaw = modal.querySelector("#settingsTemperature")?.value?.trim();
   const maxTokensRaw = modal.querySelector("#settingsMaxTokens")?.value?.trim();
@@ -249,15 +249,14 @@ async function saveSettings(modal) {
   );
   const newAvatar = avatarEditor ? getAvatarEditorValue(avatarEditor) : "";
 
-  if (!protocol || !apiKey || !model) {
-    showToast("协议、API Key 和模型为必填项。", "error");
+  if (!protocol || !apiKey) {
+    showToast("协议和 API Key 为必填项。", "error");
     return false;
   }
-  const baseUrl = normalizeBaseUrl(rawBaseUrl);
-  if (!baseUrl) {
-    showToast("Base URL 为必填项，请填写有效的 URL。", "error");
-    return false;
-  }
+  
+  // Use defaults for base_url and model if not provided
+  const baseUrl = normalizeBaseUrl(rawBaseUrl) || "https://api.deepseek.com";
+  const model = modelRaw || "deepseek-chat";
   
   // Validate max_tokens
   const maxTokens = parseInt(maxTokensRaw, 10);

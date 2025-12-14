@@ -521,9 +521,8 @@ export function createApp() {
   function isConfigValid(config) {
     const protocol = config.llm_protocol;
     const apiKey = config.llm_api_key;
-    const model = config.llm_model;
-    const baseUrl = config.llm_base_url;
-    if (!protocol || !apiKey || !model || !baseUrl) return false;
+    // model and base_url have defaults, so only protocol and apiKey are required
+    if (!protocol || !apiKey) return false;
     return true;
   }
 

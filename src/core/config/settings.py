@@ -24,9 +24,9 @@ class CharacterConfig(BaseSettings):
 class LLMDefaults(BaseSettings):
     # Protocol-based configuration defaults
     protocol: str = "completions"  # Default to completions (/chat/completions)
-    base_url: str = ""  # Required but default empty
+    base_url: str = "https://api.deepseek.com"  # Default to DeepSeek API
     api_key: str = ""  # Required but default empty
-    model: str = ""  # Required but default empty
+    model: str = "deepseek-chat"  # Default to deepseek-chat
     max_tokens: int = 1000  # Required, default 1000
 
     class Config:
