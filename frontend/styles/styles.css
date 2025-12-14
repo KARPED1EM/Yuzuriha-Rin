@@ -266,7 +266,7 @@ textarea {
     flex-shrink: 0;
     transition: transform 0.25s ease;
     position: relative;
-    z-index: 1;
+    z-index: 10;
 }
 
 .wechat-shell {
@@ -901,7 +901,7 @@ textarea {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    z-index: 2000;
+    z-index: 5;
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
@@ -1036,7 +1036,7 @@ textarea {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
-    z-index: 9999;
+    z-index: 3500;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1950,6 +1950,15 @@ textarea {
 
 .toast.info {
     background: #007aff;
+}
+
+/* Medium Zoom - Image Preview */
+.medium-zoom-overlay {
+    z-index: 2800 !important;
+}
+
+.medium-zoom-image {
+    z-index: 2801 !important;
 }
 
 /* Confirm modal message spacing */
