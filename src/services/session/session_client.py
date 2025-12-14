@@ -84,6 +84,7 @@ class SessionClient:
         try:
             # Loop until LLM returns without tool calls
             iteration = 0
+            reached_max_iterations = False
             
             while iteration < MAX_TOOL_CALL_ITERATIONS:
                 iteration += 1
@@ -237,8 +238,11 @@ class SessionClient:
                 
                 # No tool calls - process the response normally
                 break
+            else:
+                # Loop exited due to reaching max iterations (not via break)
+                reached_max_iterations = True
             
-            if iteration >= MAX_TOOL_CALL_ITERATIONS:
+            if reached_max_iterations:
                 log_entry = unified_logger.warning(
                     f"Max tool call iterations reached ({MAX_TOOL_CALL_ITERATIONS})",
                     category=LogCategory.LLM,
