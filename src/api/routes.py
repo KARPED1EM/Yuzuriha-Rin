@@ -20,6 +20,11 @@ from src.core.config import database_config
 from src.core.models.constants import DEFAULT_USER_ID
 from src.core.models.character import Character
 from src.utils.url_utils import sanitize_base_url
+from src.infrastructure.utils.logger import (
+    unified_logger,
+    broadcast_log_if_needed,
+    LogCategory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -276,6 +281,32 @@ async def update_character(character_id: str, data: CharacterUpdate):
     success = await character_service.update_character(character)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update character")
+
+    # Update active RinClient instances using this character
+    from src.api import ws_routes
+    updated_sessions = []
+    for session_id, rin_client in ws_routes.rin_clients.items():
+        if hasattr(rin_client, 'character') and rin_client.character.id == character_id:
+            try:
+                rin_client.update_character_config(character)
+                updated_sessions.append(session_id)
+            except Exception as e:
+                log_entry = unified_logger.warning(
+                    f"Failed to update RinClient config for session {session_id}: {e}",
+                    category=LogCategory.BEHAVIOR,
+                )
+                await broadcast_log_if_needed(log_entry)
+    
+    if updated_sessions:
+        log_entry = unified_logger.info(
+            f"Updated character config for {len(updated_sessions)} active sessions",
+            category=LogCategory.BEHAVIOR,
+            metadata={
+                "character_id": character_id,
+                "sessions": updated_sessions,
+            },
+        )
+        await broadcast_log_if_needed(log_entry)
 
     return {"character": character.model_dump()}
 

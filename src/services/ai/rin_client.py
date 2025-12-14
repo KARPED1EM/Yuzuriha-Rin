@@ -118,6 +118,75 @@ class RinClient:
         await self.llm_client.close()
         logger.info("RinClient stopped")
 
+    def update_character_config(self, character: Character):
+        """Update behavior configuration when character is modified."""
+        # Update behavior config
+        behavior_config = BehaviorConfig(
+            enable_segmentation=character.enable_segmentation,
+            enable_typo=character.enable_typo,
+            enable_recall=character.enable_recall,
+            enable_emotion_fetch=character.enable_emotion_detection,
+            max_segment_length=character.max_segment_length,
+            min_pause_duration=character.min_pause_duration,
+            max_pause_duration=character.max_pause_duration,
+            base_typo_rate=character.base_typo_rate,
+            typo_recall_rate=character.typo_recall_rate,
+            recall_delay=character.recall_delay,
+            retype_delay=character.retype_delay,
+        )
+        self.coordinator.update_config(behavior_config)
+        
+        # Update timeline config
+        timeline_config = TimelineConfig(
+            hesitation_probability=character.hesitation_probability,
+            hesitation_cycles_min=character.hesitation_cycles_min,
+            hesitation_cycles_max=character.hesitation_cycles_max,
+            hesitation_duration_min=character.hesitation_duration_min,
+            hesitation_duration_max=character.hesitation_duration_max,
+            hesitation_gap_min=character.hesitation_gap_min,
+            hesitation_gap_max=character.hesitation_gap_max,
+            typing_lead_time_threshold_1=character.typing_lead_time_threshold_1,
+            typing_lead_time_1=character.typing_lead_time_1,
+            typing_lead_time_threshold_2=character.typing_lead_time_threshold_2,
+            typing_lead_time_2=character.typing_lead_time_2,
+            typing_lead_time_threshold_3=character.typing_lead_time_threshold_3,
+            typing_lead_time_3=character.typing_lead_time_3,
+            typing_lead_time_threshold_4=character.typing_lead_time_threshold_4,
+            typing_lead_time_4=character.typing_lead_time_4,
+            typing_lead_time_threshold_5=character.typing_lead_time_threshold_5,
+            typing_lead_time_5=character.typing_lead_time_5,
+            typing_lead_time_default=character.typing_lead_time_default,
+            entry_delay_min=character.entry_delay_min,
+            entry_delay_max=character.entry_delay_max,
+            initial_delay_weight_1=character.initial_delay_weight_1,
+            initial_delay_range_1_min=character.initial_delay_range_1_min,
+            initial_delay_range_1_max=character.initial_delay_range_1_max,
+            initial_delay_weight_2=character.initial_delay_weight_2,
+            initial_delay_range_2_min=character.initial_delay_range_2_min,
+            initial_delay_range_2_max=character.initial_delay_range_2_max,
+            initial_delay_weight_3=character.initial_delay_weight_3,
+            initial_delay_range_3_min=character.initial_delay_range_3_min,
+            initial_delay_range_3_max=character.initial_delay_range_3_max,
+            initial_delay_range_4_min=character.initial_delay_range_4_min,
+            initial_delay_range_4_max=character.initial_delay_range_4_max,
+        )
+        self.coordinator.timeline_builder.config = timeline_config
+        
+        # Update sticker config
+        self.coordinator.set_sticker_packs(character.sticker_packs or [])
+        self.coordinator.set_sticker_config(
+            send_probability=character.sticker_send_probability,
+            threshold_positive=character.sticker_confidence_threshold_positive,
+            threshold_neutral=character.sticker_confidence_threshold_neutral,
+            threshold_negative=character.sticker_confidence_threshold_negative,
+        )
+        
+        # Store the character reference
+        self.character = character
+        
+        logger.info(f"RinClient configuration updated for character {character.name}")
+
+
     async def process_user_message(self, user_message: Message):
         if not self._running:
             return
