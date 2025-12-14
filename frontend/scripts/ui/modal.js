@@ -40,6 +40,13 @@ async function getBehaviorSchema() {
   }
 }
 
+/**
+ * Pre-fetch behavior schema during app initialization to avoid delay on first modal open
+ */
+export async function prefetchBehaviorSchema() {
+  await getBehaviorSchema();
+}
+
 function createOverlay() {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
@@ -277,6 +284,7 @@ async function saveSettings(modal) {
 
 /**
  * @param {import("../core/types.js").Character} character
+ * @returns {Promise<void>}
  */
 export async function showCharacterSettingsModal(character) {
   const overlay = createOverlay();
