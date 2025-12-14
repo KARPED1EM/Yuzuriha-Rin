@@ -244,6 +244,7 @@ export function createApp() {
 
         wsClientsBySession.get(old_session_id)?.close();
         wsClientsBySession.delete(old_session_id);
+        reconnectController.unregister(old_session_id);
         const newClient = new WsClient(new_session_id);
         newClient.onMessage((e) => handleWsMessage(e, new_session_id));
         newClient.onOpen(() => {
