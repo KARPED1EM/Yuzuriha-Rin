@@ -408,6 +408,7 @@ export function createApp() {
         wsClientsBySession.get(sessionId)?.close();
         wsClientsBySession.delete(sessionId);
         dropChatSessionContainer(sessionId);
+        reconnectController.unregister(sessionId);
       }
       setActiveSessionId(null);
       showSessionListView();
