@@ -174,6 +174,58 @@ class GalleryArea(QWidget):
     """支持拖放的图库区域"""
     files_dropped = pyqtSignal(list)  # 发送文件路径列表
     
+    # 现代化滚动条样式
+    SCROLLBAR_STYLE = """
+        QScrollBar:vertical {
+            border: none;
+            background: #f5f5f5;
+            width: 10px;
+            border-radius: 5px;
+            margin: 0px;
+        }
+        QScrollBar::handle:vertical {
+            background: #c0c0c0;
+            border-radius: 5px;
+            min-height: 20px;
+        }
+        QScrollBar::handle:vertical:hover {
+            background: #a0a0a0;
+        }
+        QScrollBar::handle:vertical:pressed {
+            background: #808080;
+        }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            background: none;
+        }
+        QScrollBar:horizontal {
+            border: none;
+            background: #f5f5f5;
+            height: 10px;
+            border-radius: 5px;
+            margin: 0px;
+        }
+        QScrollBar::handle:horizontal {
+            background: #c0c0c0;
+            border-radius: 5px;
+            min-width: 20px;
+        }
+        QScrollBar::handle:horizontal:hover {
+            background: #a0a0a0;
+        }
+        QScrollBar::handle:horizontal:pressed {
+            background: #808080;
+        }
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            width: 0px;
+        }
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+            background: none;
+        }
+    """
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
@@ -182,12 +234,13 @@ class GalleryArea(QWidget):
     def setup_ui(self):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: 2px dashed #e0e0e0;
                 background: #fafafa;
                 border-radius: 8px;
-            }
+            }}
+            {self.SCROLLBAR_STYLE}
         """)
         
         self.sticker_container = QWidget()
@@ -206,32 +259,35 @@ class GalleryArea(QWidget):
         if event.mimeData().hasUrls() or event.mimeData().hasImage():
             event.acceptProposedAction()
             # 高亮边框
-            self.scroll_area.setStyleSheet("""
-                QScrollArea {
+            self.scroll_area.setStyleSheet(f"""
+                QScrollArea {{
                     border: 2px dashed #2196F3;
                     background: #e3f2fd;
                     border-radius: 8px;
-                }
+                }}
+                {self.SCROLLBAR_STYLE}
             """)
             
     def dragLeaveEvent(self, event):
         # 恢复边框
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: 2px dashed #e0e0e0;
                 background: #fafafa;
                 border-radius: 8px;
-            }
+            }}
+            {self.SCROLLBAR_STYLE}
         """)
             
     def dropEvent(self, event: QDropEvent):
         # 恢复边框
-        self.scroll_area.setStyleSheet("""
-            QScrollArea {
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
                 border: 2px dashed #e0e0e0;
                 background: #fafafa;
                 border-radius: 8px;
-            }
+            }}
+            {self.SCROLLBAR_STYLE}
         """)
         
         mime_data = event.mimeData()
@@ -338,6 +394,7 @@ class StickerManagerWindow(QMainWindow):
                 padding: 6px 12px;
                 min-width: 140px;
                 background: white;
+                color: #333;
                 font-size: 12px;
             }
             QComboBox:hover {
@@ -352,6 +409,7 @@ class StickerManagerWindow(QMainWindow):
                 border-radius: 4px;
                 padding: 6px 14px;
                 background: white;
+                color: #333;
                 font-size: 12px;
                 font-weight: 500;
             }
@@ -480,11 +538,12 @@ class StickerManagerWindow(QMainWindow):
         # 类别列表
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setStyleSheet("""
-            QScrollArea {
+        scroll.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background: transparent;
-            }
+            }}
+            {GalleryArea.SCROLLBAR_STYLE}
         """)
         
         category_container = QWidget()
