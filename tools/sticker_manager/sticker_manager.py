@@ -24,6 +24,58 @@ from PyQt6.QtGui import QPixmap, QImage, QDragEnterEvent, QDropEvent, QAction, Q
 # 导入类别映射
 from sticker_categories import CATEGORY_MAP, CHINESE_TO_ROMAJI
 
+# 现代化滚动条样式（模块级常量，可在多处复用）
+SCROLLBAR_STYLE = """
+    QScrollBar:vertical {
+        border: none;
+        background: #f5f5f5;
+        width: 10px;
+        border-radius: 5px;
+        margin: 0px;
+    }
+    QScrollBar::handle:vertical {
+        background: #c0c0c0;
+        border-radius: 5px;
+        min-height: 20px;
+    }
+    QScrollBar::handle:vertical:hover {
+        background: #a0a0a0;
+    }
+    QScrollBar::handle:vertical:pressed {
+        background: #808080;
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+        background: none;
+    }
+    QScrollBar:horizontal {
+        border: none;
+        background: #f5f5f5;
+        height: 10px;
+        border-radius: 5px;
+        margin: 0px;
+    }
+    QScrollBar::handle:horizontal {
+        background: #c0c0c0;
+        border-radius: 5px;
+        min-width: 20px;
+    }
+    QScrollBar::handle:horizontal:hover {
+        background: #a0a0a0;
+    }
+    QScrollBar::handle:horizontal:pressed {
+        background: #808080;
+    }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+        width: 0px;
+    }
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+        background: none;
+    }
+"""
+
 
 class Toast(QLabel):
     """Toast通知组件"""
@@ -174,58 +226,6 @@ class GalleryArea(QWidget):
     """支持拖放的图库区域"""
     files_dropped = pyqtSignal(list)  # 发送文件路径列表
     
-    # 现代化滚动条样式
-    SCROLLBAR_STYLE = """
-        QScrollBar:vertical {
-            border: none;
-            background: #f5f5f5;
-            width: 10px;
-            border-radius: 5px;
-            margin: 0px;
-        }
-        QScrollBar::handle:vertical {
-            background: #c0c0c0;
-            border-radius: 5px;
-            min-height: 20px;
-        }
-        QScrollBar::handle:vertical:hover {
-            background: #a0a0a0;
-        }
-        QScrollBar::handle:vertical:pressed {
-            background: #808080;
-        }
-        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-            height: 0px;
-        }
-        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-            background: none;
-        }
-        QScrollBar:horizontal {
-            border: none;
-            background: #f5f5f5;
-            height: 10px;
-            border-radius: 5px;
-            margin: 0px;
-        }
-        QScrollBar::handle:horizontal {
-            background: #c0c0c0;
-            border-radius: 5px;
-            min-width: 20px;
-        }
-        QScrollBar::handle:horizontal:hover {
-            background: #a0a0a0;
-        }
-        QScrollBar::handle:horizontal:pressed {
-            background: #808080;
-        }
-        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-            width: 0px;
-        }
-        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-            background: none;
-        }
-    """
-    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
@@ -240,7 +240,7 @@ class GalleryArea(QWidget):
                 background: #fafafa;
                 border-radius: 8px;
             }}
-            {self.SCROLLBAR_STYLE}
+            {SCROLLBAR_STYLE}
         """)
         
         self.sticker_container = QWidget()
@@ -265,7 +265,7 @@ class GalleryArea(QWidget):
                     background: #e3f2fd;
                     border-radius: 8px;
                 }}
-                {self.SCROLLBAR_STYLE}
+                {SCROLLBAR_STYLE}
             """)
             
     def dragLeaveEvent(self, event):
@@ -276,7 +276,7 @@ class GalleryArea(QWidget):
                 background: #fafafa;
                 border-radius: 8px;
             }}
-            {self.SCROLLBAR_STYLE}
+            {SCROLLBAR_STYLE}
         """)
             
     def dropEvent(self, event: QDropEvent):
@@ -287,7 +287,7 @@ class GalleryArea(QWidget):
                 background: #fafafa;
                 border-radius: 8px;
             }}
-            {self.SCROLLBAR_STYLE}
+            {SCROLLBAR_STYLE}
         """)
         
         mime_data = event.mimeData()
@@ -543,7 +543,7 @@ class StickerManagerWindow(QMainWindow):
                 border: none;
                 background: transparent;
             }}
-            {GalleryArea.SCROLLBAR_STYLE}
+            {SCROLLBAR_STYLE}
         """)
         
         category_container = QWidget()
