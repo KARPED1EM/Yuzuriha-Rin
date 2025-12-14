@@ -38,8 +38,8 @@ class TimelineBuilder:
 
                 if not typing_active:
                     entry_delay = random.uniform(
-                        self.character.entry_delay_min / 1000,
-                        self.character.entry_delay_max / 1000,
+                        self.character.timeline_entry_delay_min / 1000,
+                        self.character.timeline_entry_delay_max / 1000,
                     )
                     if entry_delay > 0:
                         timeline.append(
@@ -133,19 +133,19 @@ class TimelineBuilder:
         return timeline
 
     def _generate_hesitation_sequence(self) -> List[PlaybackAction]:
-        if random.random() > self.character.hesitation_probability:
+        if random.random() > self.character.timeline_hesitation_probability:
             return []
 
         cycles = random.randint(
-            self.character.hesitation_cycles_min, self.character.hesitation_cycles_max
+            self.character.timeline_hesitation_cycles_min, self.character.timeline_hesitation_cycles_max
         )
 
         sequence = []
         for i in range(cycles):
             typing_duration = (
                 random.randint(
-                    self.character.hesitation_duration_min,
-                    self.character.hesitation_duration_max,
+                    self.character.timeline_hesitation_duration_min,
+                    self.character.timeline_hesitation_duration_max,
                 )
                 / 1000
             )
@@ -174,8 +174,8 @@ class TimelineBuilder:
             if i < cycles - 1:
                 gap_duration = (
                     random.randint(
-                        self.character.hesitation_gap_min,
-                        self.character.hesitation_gap_max,
+                        self.character.timeline_hesitation_gap_min,
+                        self.character.timeline_hesitation_gap_max,
                     )
                     / 1000
                 )
@@ -191,38 +191,38 @@ class TimelineBuilder:
 
     def _sample_initial_delay(self) -> float:
         r = random.random()
-        if r < self.character.initial_delay_weight_1:
+        if r < self.character.timeline_initial_delay_weight_1:
             return random.uniform(
-                self.character.initial_delay_range_1_min,
-                self.character.initial_delay_range_1_max,
+                self.character.timeline_initial_delay_range_1_min,
+                self.character.timeline_initial_delay_range_1_max,
             )
-        elif r < self.character.initial_delay_weight_2:
+        elif r < self.character.timeline_initial_delay_weight_2:
             return random.uniform(
-                self.character.initial_delay_range_2_min,
-                self.character.initial_delay_range_2_max,
+                self.character.timeline_initial_delay_range_2_min,
+                self.character.timeline_initial_delay_range_2_max,
             )
-        elif r < self.character.initial_delay_weight_3:
+        elif r < self.character.timeline_initial_delay_weight_3:
             return random.uniform(
-                self.character.initial_delay_range_3_min,
-                self.character.initial_delay_range_3_max,
+                self.character.timeline_initial_delay_range_3_min,
+                self.character.timeline_initial_delay_range_3_max,
             )
         else:
             return random.uniform(
-                self.character.initial_delay_range_4_min,
-                self.character.initial_delay_range_4_max,
+                self.character.timeline_initial_delay_range_4_min,
+                self.character.timeline_initial_delay_range_4_max,
             )
 
     def _calculate_typing_lead_time(self, text_length: int) -> float:
-        if text_length <= self.character.typing_lead_time_threshold_1:
-            return self.character.typing_lead_time_1 / 1000
-        elif text_length <= self.character.typing_lead_time_threshold_2:
-            return self.character.typing_lead_time_2 / 1000
-        elif text_length <= self.character.typing_lead_time_threshold_3:
-            return self.character.typing_lead_time_3 / 1000
-        elif text_length <= self.character.typing_lead_time_threshold_4:
-            return self.character.typing_lead_time_4 / 1000
-        elif text_length <= self.character.typing_lead_time_threshold_5:
-            return self.character.typing_lead_time_5 / 1000
+        if text_length <= self.character.timeline_typing_lead_time_threshold_1:
+            return self.character.timeline_typing_lead_time_1 / 1000
+        elif text_length <= self.character.timeline_typing_lead_time_threshold_2:
+            return self.character.timeline_typing_lead_time_2 / 1000
+        elif text_length <= self.character.timeline_typing_lead_time_threshold_3:
+            return self.character.timeline_typing_lead_time_3 / 1000
+        elif text_length <= self.character.timeline_typing_lead_time_threshold_4:
+            return self.character.timeline_typing_lead_time_4 / 1000
+        elif text_length <= self.character.timeline_typing_lead_time_threshold_5:
+            return self.character.timeline_typing_lead_time_5 / 1000
         else:
-            return self.character.typing_lead_time_default / 1000
+            return self.character.timeline_typing_lead_time_default / 1000
 

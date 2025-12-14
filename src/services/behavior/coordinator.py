@@ -21,7 +21,7 @@ from src.core.models.character import Character
 class BehaviorCoordinator:
     def __init__(self, character: Character):
         self.character = character
-        self.segmenter = SmartSegmenter(max_length=character.max_segment_length)
+        self.segmenter = SmartSegmenter(max_length=character.segmenter_max_length)
         self.typo_injector = TypoInjector()
         self.timeline_builder = TimelineBuilder(character)
         self.pending_log_entries = []
@@ -91,7 +91,7 @@ class BehaviorCoordinator:
 
     def _segment_and_clean(self, text: str) -> List[str]:
         segments = [text]
-        if self.character.enable_segmentation:
+        if self.character.segmenter_enable:
             try:
                 segments = self.segmenter.segment(text)
             except Exception as exc:
@@ -127,9 +127,9 @@ class BehaviorCoordinator:
         }
 
         has_typo, typo_text = False, None
-        if self.character.enable_typo:
+        if self.character.typo_enable:
             emotion_multiplier = EMOTION_TYPO_MULTIPLIERS.get(emotion, 1.0)
-            typo_rate = self.character.base_typo_rate * emotion_multiplier
+            typo_rate = self.character.typo_base_rate * emotion_multiplier
             (has_typo, typo_variant, _, _) = self.typo_injector.inject_typo(
                 segment_text, typo_rate=typo_rate
             )
@@ -148,7 +148,7 @@ class BehaviorCoordinator:
         )
         actions.append(send_action)
 
-        if has_typo and typo_text and self.character.enable_recall:
+        if has_typo and typo_text and self.character.recall_enable:
             if TypoInjector.should_recall_typo(self.character.typo_recall_rate):
                 actions.extend(
                     self._build_recall_sequence(
@@ -163,8 +163,8 @@ class BehaviorCoordinator:
             interval = PausePredictor.segment_interval(
                 emotion=emotion,
                 emotion_multipliers=EMOTION_PAUSE_MULTIPLIERS,
-                min_duration=self.character.min_pause_duration,
-                max_duration=self.character.max_pause_duration,
+                min_duration=self.character.pause_min_duration,
+                max_duration=self.character.pause_max_duration,
             )
             if interval > 0:
                 actions.append(
@@ -207,11 +207,11 @@ class BehaviorCoordinator:
             )
         )
 
-        if self.character.retype_delay > 0:
+        if self.character.recall_retype_delay > 0:
             recall_actions.append(
                 PlaybackAction(
                     type="pause",
-                    duration=self.character.retype_delay,
+                    duration=self.character.recall_retype_delay,
                     metadata={"reason": "typo_retype_wait"},
                 )
             )
@@ -233,7 +233,7 @@ class BehaviorCoordinator:
     def _fetch_emotion(
         self, text: str, emotion_map: dict | None = None
     ) -> EmotionState:
-        if not self.character.enable_emotion_detection:
+        if not self.character.emotion_enable:
             return EmotionState.NEUTRAL
         return EmotionFetcher.fetch(emotion_map=emotion_map, fallback_text=text)
 
