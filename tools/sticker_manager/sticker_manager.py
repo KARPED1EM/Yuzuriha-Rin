@@ -180,6 +180,64 @@ SCROLLBAR_STYLE = """
     }
 """
 
+# 亮色主题对话框样式（QInputDialog）
+INPUT_DIALOG_STYLE = """
+    QInputDialog {
+        background: white;
+    }
+    QLabel {
+        color: #333;
+        font-size: 13px;
+    }
+    QLineEdit {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 6px;
+        font-size: 13px;
+    }
+    QLineEdit:focus {
+        border-color: #2196F3;
+    }
+    QPushButton {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 6px 14px;
+        font-size: 13px;
+    }
+    QPushButton:hover {
+        background: #f5f5f5;
+        border-color: #2196F3;
+    }
+"""
+
+# 亮色主题对话框样式（QMessageBox）
+MESSAGE_BOX_STYLE = """
+    QMessageBox {
+        background: white;
+    }
+    QLabel {
+        color: #333;
+        font-size: 13px;
+    }
+    QPushButton {
+        background: white;
+        color: #333;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 6px 14px;
+        font-size: 13px;
+        min-width: 60px;
+    }
+    QPushButton:hover {
+        background: #f5f5f5;
+        border-color: #2196F3;
+    }
+"""
+
 
 class Toast(QLabel):
     """Toast通知组件"""
@@ -432,40 +490,7 @@ class StickerWidget(QFrame):
         dialog.setWindowTitle("编辑图片描述")
         dialog.setLabelText(f"图片路径: {self.get_relative_path()}\n\n请输入描述:")
         dialog.setTextValue(current_desc)
-        dialog.setStyleSheet(
-            """
-            QInputDialog {
-                background: white;
-            }
-            QLabel {
-                color: #333;
-                font-size: 13px;
-            }
-            QLineEdit {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px;
-                font-size: 13px;
-            }
-            QLineEdit:focus {
-                border-color: #2196F3;
-            }
-            QPushButton {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px 14px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background: #f5f5f5;
-                border-color: #2196F3;
-            }
-        """
-        )
+        dialog.setStyleSheet(INPUT_DIALOG_STYLE)
         
         ok = dialog.exec()
         text = dialog.textValue()
@@ -1199,30 +1224,7 @@ class StickerManagerWindow(QMainWindow):
         msg_box.setWindowTitle("确认删除")
         msg_box.setText(f"确定要删除所有未知类别目录吗？\n这将删除 {sum(len(v) for v in unknown_categories.values())} 个目录及其中的所有文件！")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.setStyleSheet(
-            """
-            QMessageBox {
-                background: white;
-            }
-            QLabel {
-                color: #333;
-                font-size: 13px;
-            }
-            QPushButton {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px 14px;
-                font-size: 13px;
-                min-width: 60px;
-            }
-            QPushButton:hover {
-                background: #f5f5f5;
-                border-color: #2196F3;
-            }
-        """
-        )
+        msg_box.setStyleSheet(MESSAGE_BOX_STYLE)
         reply = msg_box.exec()
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -1341,30 +1343,7 @@ class StickerManagerWindow(QMainWindow):
         msg_box.setWindowTitle("确认删除")
         msg_box.setText(f"确定要删除这个表情包吗？\n{Path(file_path).name}")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.setStyleSheet(
-            """
-            QMessageBox {
-                background: white;
-            }
-            QLabel {
-                color: #333;
-                font-size: 13px;
-            }
-            QPushButton {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px 14px;
-                font-size: 13px;
-                min-width: 60px;
-            }
-            QPushButton:hover {
-                background: #f5f5f5;
-                border-color: #2196F3;
-            }
-        """
-        )
+        msg_box.setStyleSheet(MESSAGE_BOX_STYLE)
         reply = msg_box.exec()
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -1463,40 +1442,7 @@ class StickerManagerWindow(QMainWindow):
         dialog = QInputDialog(self)
         dialog.setWindowTitle("新建合集")
         dialog.setLabelText("请输入合集名称:")
-        dialog.setStyleSheet(
-            """
-            QInputDialog {
-                background: white;
-            }
-            QLabel {
-                color: #333;
-                font-size: 13px;
-            }
-            QLineEdit {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px;
-                font-size: 13px;
-            }
-            QLineEdit:focus {
-                border-color: #2196F3;
-            }
-            QPushButton {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px 14px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background: #f5f5f5;
-                border-color: #2196F3;
-            }
-        """
-        )
+        dialog.setStyleSheet(INPUT_DIALOG_STYLE)
         
         ok = dialog.exec()
         name = dialog.textValue()
@@ -1535,30 +1481,7 @@ class StickerManagerWindow(QMainWindow):
         msg_box.setWindowTitle("确认删除")
         msg_box.setText(f"确定要删除合集 '{self.current_collection}' 吗？\n这将删除该合集下的所有表情包！")
         msg_box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        msg_box.setStyleSheet(
-            """
-            QMessageBox {
-                background: white;
-            }
-            QLabel {
-                color: #333;
-                font-size: 13px;
-            }
-            QPushButton {
-                background: white;
-                color: #333;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 6px 14px;
-                font-size: 13px;
-                min-width: 60px;
-            }
-            QPushButton:hover {
-                background: #f5f5f5;
-                border-color: #2196F3;
-            }
-        """
-        )
+        msg_box.setStyleSheet(MESSAGE_BOX_STYLE)
         reply = msg_box.exec()
 
         if reply == QMessageBox.StandardButton.Yes:
