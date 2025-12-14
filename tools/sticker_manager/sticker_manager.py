@@ -404,6 +404,27 @@ class StickerManagerWindow(QMainWindow):
                 border: none;
                 width: 20px;
             }
+            QComboBox QAbstractItemView {
+                background: white;
+                color: #333;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 4px;
+                selection-background-color: #2196F3;
+                selection-color: white;
+                outline: none;
+            }
+            QComboBox QAbstractItemView::item {
+                padding: 6px 12px;
+                border-radius: 2px;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #e3f2fd;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #2196F3;
+                color: white;
+            }
             QPushButton {
                 border: 1px solid #ddd;
                 border-radius: 4px;
@@ -513,28 +534,6 @@ class StickerManagerWindow(QMainWindow):
         """)
         layout.addWidget(self.search_box)
         
-        # 添加新建类别按钮
-        new_category_btn = QPushButton("➕ 新建类别")
-        new_category_btn.clicked.connect(self.create_new_category)
-        new_category_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 8px;
-                font-size: 12px;
-                border: none;
-                border-radius: 4px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-            QPushButton:pressed {
-                background-color: #3d8b40;
-            }
-        """)
-        layout.addWidget(new_category_btn)
-        
         # 类别列表
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -634,10 +633,6 @@ class StickerManagerWindow(QMainWindow):
             btn.setProperty("chinese", chinese_name)
             btn.setCheckable(True)
             btn.clicked.connect(lambda checked, r=romaji_name, b=btn: self.on_category_selected(r, b))
-            btn.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-            btn.customContextMenuRequested.connect(
-                lambda pos, r=romaji_name, b=btn: self.show_category_context_menu(pos, r, b)
-            )
             btn.setStyleSheet("""
                 QPushButton {
                     text-align: left;
@@ -690,69 +685,6 @@ class StickerManagerWindow(QMainWindow):
         button.setChecked(True)
         self.current_category = romaji_name
         self.load_stickers()
-    
-    def show_category_context_menu(self, pos: QPoint, romaji_name: str, button: QPushButton):
-        """显示类别右键菜单"""
-        menu = QMenu(self)
-        menu.setStyleSheet("""
-            QMenu {
-                background: white;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QMenu::item {
-                padding: 8px 24px;
-                border-radius: 2px;
-            }
-            QMenu::item:selected {
-                background: #e3f2fd;
-            }
-        """)
-        
-        delete_action = QAction("🗑️ 删除类别", self)
-        delete_action.triggered.connect(lambda: self.delete_category(romaji_name))
-        menu.addAction(delete_action)
-        
-        menu.exec(button.mapToGlobal(pos))
-    
-    def delete_category(self, romaji_name: str):
-        """删除类别"""
-        if not self.current_collection:
-            return
-        
-        chinese_name = CATEGORY_MAP.get(romaji_name, romaji_name)
-        category_path = self.sticker_base / self.current_collection / romaji_name
-        
-        # 统计该类别的文件数
-        file_count = len(list(category_path.glob("*.*"))) if category_path.exists() else 0
-        
-        reply = QMessageBox.question(
-            self,
-            "确认删除",
-            f"确定要删除类别 '{chinese_name}' 吗？\n"
-            f"这将删除该类别下的 {file_count} 个表情包文件！",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            try:
-                if category_path.exists():
-                    shutil.rmtree(category_path)
-                
-                # 如果删除的是当前类别，清空显示
-                if self.current_category == romaji_name:
-                    self.current_category = None
-                    while self.gallery_area.sticker_layout.count():
-                        item = self.gallery_area.sticker_layout.takeAt(0)
-                        if item.widget():
-                            item.widget().deleteLater()
-                
-                self.load_categories()
-                self.update_stats()
-                self.show_toast(f"类别 '{chinese_name}' 已删除", True)
-            except Exception as e:
-                self.show_toast(f"删除失败", False)
     
     def get_next_filename(self, category_path: Path) -> str:
         """获取下一个文件名（自动编号）"""
@@ -940,119 +872,32 @@ class StickerManagerWindow(QMainWindow):
                 return
                 
             try:
+                # 创建合集目录
                 collection_path.mkdir(parents=True, exist_ok=True)
+                
+                # 获取所有需要创建的类别（从 rin 和 general 合并）
+                all_categories = set()
+                
+                # 从 rin 获取类别
+                rin_path = self.sticker_base / "rin"
+                if rin_path.exists():
+                    all_categories.update([d.name for d in rin_path.iterdir() if d.is_dir()])
+                
+                # 从 general 获取类别
+                general_path = self.sticker_base / "general"
+                if general_path.exists():
+                    all_categories.update([d.name for d in general_path.iterdir() if d.is_dir()])
+                
+                # 为新合集创建所有类别目录
+                for category_name in sorted(all_categories):
+                    category_dir = collection_path / category_name
+                    category_dir.mkdir(exist_ok=True)
+                
                 self.load_collections()
                 self.collection_combo.setCurrentText(name)
-                self.show_toast(f"合集 '{name}' 创建成功", True)
+                self.show_toast(f"合集 '{name}' 创建成功，已自动创建 {len(all_categories)} 个类别", True)
             except Exception as e:
-                self.show_toast("创建失败", False)
-    
-    def create_new_category(self):
-        """创建新类别"""
-        if not self.current_collection:
-            self.show_toast("请先选择合集", False)
-            return
-        
-        # 创建一个对话框让用户选择或输入类别
-        dialog = QDialog(self)
-        dialog.setWindowTitle("新建类别")
-        dialog.setMinimumWidth(450)
-        dialog.setStyleSheet("""
-            QDialog {
-                background: white;
-            }
-            QLabel {
-                color: #333;
-                font-size: 12px;
-            }
-            QComboBox, QLineEdit {
-                padding: 8px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-size: 12px;
-            }
-            QComboBox:focus, QLineEdit:focus {
-                border-color: #2196F3;
-            }
-        """)
-        
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(12)
-        
-        # 说明文字
-        info_label = QLabel("请从列表中选择已定义的类别，或输入自定义类别名称：")
-        info_label.setStyleSheet("font-weight: 500;")
-        layout.addWidget(info_label)
-        
-        # 类别选择下拉框
-        layout.addWidget(QLabel("预定义类别（中文）："))
-        category_combo = QComboBox()
-        category_combo.setStyleSheet("min-height: 32px;")
-        
-        # 添加所有映射的类别（按中文名排序）
-        sorted_categories = sorted(CHINESE_TO_ROMAJI.items())
-        category_combo.addItem("-- 选择预定义类别 --", "")
-        for chinese, romaji in sorted_categories:
-            category_combo.addItem(chinese, romaji)
-        
-        layout.addWidget(category_combo)
-        
-        # 自定义类别输入
-        layout.addWidget(QLabel("或输入自定义类别名称（拼音）："))
-        custom_input = QLineEdit()
-        custom_input.setPlaceholderText("例如: custom_category")
-        custom_input.setStyleSheet("min-height: 32px;")
-        layout.addWidget(custom_input)
-        
-        # 提示信息
-        hint_label = QLabel("提示：自定义类别将以拼音形式显示")
-        hint_label.setStyleSheet("color: #666; font-size: 11px;")
-        layout.addWidget(hint_label)
-        
-        # 按钮
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        button_box.setStyleSheet("""
-            QPushButton {
-                padding: 8px 20px;
-                border-radius: 4px;
-                font-size: 12px;
-                font-weight: 500;
-            }
-        """)
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-        layout.addWidget(button_box)
-        
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            # 获取选择或输入的类别
-            custom_name = custom_input.text().strip()
-            selected_romaji = category_combo.currentData()
-            
-            category_romaji = custom_name if custom_name else selected_romaji
-            
-            if not category_romaji:
-                self.show_toast("请选择或输入类别名称", False)
-                return
-            
-            # 检查类别是否已存在
-            category_path = self.sticker_base / self.current_collection / category_romaji
-            if category_path.exists():
-                self.show_toast(f"类别 '{category_romaji}' 已存在", False)
-                return
-            
-            try:
-                category_path.mkdir(parents=True, exist_ok=True)
-                self.load_categories()
-                chinese_name = CATEGORY_MAP.get(category_romaji, category_romaji)
-                self.show_toast(f"类别 '{chinese_name}' 创建成功", True)
-                
-                # 自动选择新创建的类别
-                self.current_category = category_romaji
-                self.load_stickers()
-            except Exception as e:
-                self.show_toast("创建类别失败", False)
+                self.show_toast(f"创建失败: {str(e)}", False)
                 
     def delete_collection(self):
         """删除合集"""
