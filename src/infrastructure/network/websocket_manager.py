@@ -10,7 +10,6 @@ class WebSocketManager:
     def __init__(self):
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         self.user_websockets: Dict[WebSocket, str] = {}
-        self.debug_connections: Dict[str, Set[WebSocket]] = {}  # legacy per-conversation debug
         self.global_connections: Set[WebSocket] = set()
         self.global_debug_connections: Set[WebSocket] = set()
 
@@ -34,9 +33,6 @@ class WebSocketManager:
                 del self.active_connections[conversation_id]
 
         self.user_websockets.pop(websocket, None)
-
-        # Also remove from debug connections if present
-        self.disable_debug_mode(websocket, conversation_id)
 
     def disconnect_global(self, websocket: WebSocket):
         self.global_connections.discard(websocket)
@@ -111,43 +107,11 @@ class WebSocketManager:
     def get_connection_count(self, conversation_id: str) -> int:
         return len(self.active_connections.get(conversation_id, set()))
 
-    def enable_debug_mode(self, websocket: WebSocket, conversation_id: str):
-        """Enable debug mode for a websocket connection"""
-        if conversation_id not in self.debug_connections:
-            self.debug_connections[conversation_id] = set()
-        self.debug_connections[conversation_id].add(websocket)
-
-    def disable_debug_mode(self, websocket: WebSocket, conversation_id: str):
-        """Disable debug mode for a websocket connection"""
-        if conversation_id in self.debug_connections:
-            self.debug_connections[conversation_id].discard(websocket)
-            if not self.debug_connections[conversation_id]:
-                del self.debug_connections[conversation_id]
-
     def enable_global_debug_mode(self, websocket: WebSocket):
         self.global_debug_connections.add(websocket)
 
     def disable_global_debug_mode(self, websocket: WebSocket):
         self.global_debug_connections.discard(websocket)
-
-    async def broadcast_debug_log(self, log_entry: dict):
-        """Broadcast debug log to all connections with debug mode enabled"""
-        disconnected = []
-
-        for conversation_id, websockets in self.debug_connections.items():
-            for websocket in websockets:
-                try:
-                    await websocket.send_json({
-                        "type": "debug_log",
-                        "data": log_entry
-                    })
-                except Exception as e:
-                    logger.error(f"Error sending debug log: {e}")
-                    disconnected.append((websocket, conversation_id))
-
-        # Clean up disconnected websockets
-        for ws, conv_id in disconnected:
-            self.disable_debug_mode(ws, conv_id)
 
     async def broadcast_global_debug_log(self, log_entry: dict):
         """Broadcast debug logs to global debug connections."""

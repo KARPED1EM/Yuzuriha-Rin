@@ -57,31 +57,16 @@ class ConfigRepository(BaseRepository[Dict]):
         try:
             with self.conn_mgr.transaction() as conn:
                 cursor = conn.cursor()
-                try:
-                    cursor.execute(
-                        """
-                        INSERT INTO app_config (key, value, updated_at)
-                        VALUES (?, ?, CURRENT_TIMESTAMP)
-                        ON CONFLICT(key) DO UPDATE SET
-                            value = excluded.value,
-                            updated_at = CURRENT_TIMESTAMP
-                        """,
-                        (key, value),
-                    )
-                except Exception as inner:
-                    # Backward-compatible schema without updated_at column.
-                    if "no such column: updated_at" in str(inner).lower():
-                        cursor.execute(
-                            """
-                            INSERT INTO app_config (key, value)
-                            VALUES (?, ?)
-                            ON CONFLICT(key) DO UPDATE SET
-                                value = excluded.value
-                            """,
-                            (key, value),
-                        )
-                    else:
-                        raise
+                cursor.execute(
+                    """
+                    INSERT INTO app_config (key, value, updated_at)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(key) DO UPDATE SET
+                        value = excluded.value,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (key, value),
+                )
                 return True
         except Exception as e:
             logger.error(f"Error setting config: {e}", exc_info=True)
@@ -92,30 +77,16 @@ class ConfigRepository(BaseRepository[Dict]):
             with self.conn_mgr.transaction() as conn:
                 cursor = conn.cursor()
                 for key, value in config.items():
-                    try:
-                        cursor.execute(
-                            """
-                            INSERT INTO app_config (key, value, updated_at)
-                            VALUES (?, ?, CURRENT_TIMESTAMP)
-                            ON CONFLICT(key) DO UPDATE SET
-                                value = excluded.value,
-                                updated_at = CURRENT_TIMESTAMP
-                            """,
-                            (key, value),
-                        )
-                    except Exception as inner:
-                        if "no such column: updated_at" in str(inner).lower():
-                            cursor.execute(
-                                """
-                                INSERT INTO app_config (key, value)
-                                VALUES (?, ?)
-                                ON CONFLICT(key) DO UPDATE SET
-                                    value = excluded.value
-                                """,
-                                (key, value),
-                            )
-                        else:
-                            raise
+                    cursor.execute(
+                        """
+                        INSERT INTO app_config (key, value, updated_at)
+                        VALUES (?, ?, CURRENT_TIMESTAMP)
+                        ON CONFLICT(key) DO UPDATE SET
+                            value = excluded.value,
+                            updated_at = CURRENT_TIMESTAMP
+                        """,
+                        (key, value),
+                    )
                 return True
         except Exception as e:
             logger.error(f"Error setting config batch: {e}", exc_info=True)
