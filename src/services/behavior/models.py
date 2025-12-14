@@ -67,6 +67,13 @@ class BehaviorConfig(BaseModel):
         }
     )
 
+    # Sticker configuration (unified with other behavior settings)
+    sticker_packs: list = Field(default_factory=list)
+    sticker_send_probability: float = 0.4
+    sticker_confidence_threshold_positive: float = 0.6
+    sticker_confidence_threshold_neutral: float = 0.7
+    sticker_confidence_threshold_negative: float = 0.8
+
 
 class TimelineConfig(BaseModel):
     hesitation_probability: float = 0.15

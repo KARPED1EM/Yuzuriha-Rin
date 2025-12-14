@@ -63,12 +63,6 @@ async def initialize_services():
         logger.info("REST API services initialized")
 
 
-def get_active_rin_clients():
-    """Get active RinClient instances. Imported here to avoid circular dependencies."""
-    from src.api import ws_routes
-    return ws_routes.rin_clients
-
-
 class CharacterCreate(BaseModel):
     name: str
     avatar: Optional[str] = None
@@ -288,28 +282,36 @@ async def update_character(character_id: str, data: CharacterUpdate):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update character")
 
-    # Update active RinClient instances using this character
-    rin_clients = get_active_rin_clients()
-    updated_sessions = []
-    for session_id, rin_client in rin_clients.items():
+    # Notify active sessions to reinitialize RinClient for this character
+    # This is simpler and more reliable than trying to update config in-place
+    from src.api import ws_routes
+    reinitialized_sessions = []
+    for session_id, rin_client in list(ws_routes.rin_clients.items()):
         if hasattr(rin_client, 'character') and rin_client.character.id == character_id:
             try:
-                rin_client.update_character_config(character)
-                updated_sessions.append(session_id)
+                # Send notification to frontend that client is reinitializing
+                if ws_routes.ws_manager:
+                    await ws_routes.ws_manager.send_toast(
+                        session_id,
+                        "角色配置已更新，正在重新初始化...",
+                        level="info"
+                    )
+                reinitialized_sessions.append(session_id)
             except Exception as e:
                 log_entry = unified_logger.warning(
-                    f"Failed to update RinClient config for session {session_id}: {e}",
+                    f"Failed to notify session {session_id}: {e}",
                     category=LogCategory.BEHAVIOR,
                 )
                 await broadcast_log_if_needed(log_entry)
     
-    if updated_sessions:
+    if reinitialized_sessions:
         log_entry = unified_logger.info(
-            f"Updated character config for {len(updated_sessions)} active sessions",
+            f"Character config updated, {len(reinitialized_sessions)} sessions need reinitialization",
             category=LogCategory.BEHAVIOR,
             metadata={
                 "character_id": character_id,
-                "sessions": updated_sessions,
+                "sessions": reinitialized_sessions,
+                "note": "Clients will reinitialize on next init_rin message",
             },
         )
         await broadcast_log_if_needed(log_entry)
