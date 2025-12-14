@@ -1,6 +1,5 @@
 """Tool service for LLM API tool calls."""
 
-import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from src.core.models.message import Message, MessageType
