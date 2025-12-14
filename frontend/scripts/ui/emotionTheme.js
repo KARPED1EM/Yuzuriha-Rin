@@ -2,8 +2,8 @@
 
 /** Multi-emotion glow renderer */
 export function applyEmotionTheme(emotionMap) {
-  const shell = document.getElementById("wechatShell");
-  if (!shell) return;
+  const container = document.querySelector(".app-container");
+  if (!container) return;
   if (!emotionMap || typeof emotionMap !== "object") {
     clearEmotionTheme();
     return;
@@ -39,7 +39,7 @@ export function applyEmotionTheme(emotionMap) {
     low:     { alpha: 0.10, dl: 20, ds: -46 },
     medium:  { alpha: 0.20, dl: 14, ds: -32 },
     high:    { alpha: 0.35, dl: 8,  ds: -16 },
-    extreme: { alpha: 0.78, dl: -6, ds: 8 },
+    extreme: { alpha: 0.50, dl: 0, ds: -5 },
   };
 
   const colors = [];
@@ -66,30 +66,30 @@ export function applyEmotionTheme(emotionMap) {
 
   const ordered = orderColorsGently(colors);
   const gradient = buildGlowGradient(ordered);
-  applyGradientWithTransition(shell, gradient);
+  applyGradientWithTransition(container, gradient);
 }
 
 export function clearEmotionTheme() {
-  const shell = document.getElementById("wechatShell");
-  if (!shell) return;
-  shell.style.setProperty("--glow-opacity-1", "0");
-  shell.style.setProperty("--glow-opacity-2", "0");
-  shell.classList.remove("glow-enabled");
+  const container = document.querySelector(".app-container");
+  if (!container) return;
+  container.style.setProperty("--emotion-opacity-1", "0");
+  container.style.setProperty("--emotion-opacity-2", "0");
+  container.classList.remove("emotion-enabled");
 }
 
 let activeLayer = 1;
 
 /** Cross-fade layers */
-function applyGradientWithTransition(shell, gradient) {
+function applyGradientWithTransition(container, gradient) {
   const nextLayer = activeLayer === 1 ? 2 : 1;
-  shell.style.setProperty(`--glow-gradient-${nextLayer}`, gradient);
-  shell.style.setProperty("--glow-opacity-1", nextLayer === 1 ? "1" : "0");
-  shell.style.setProperty("--glow-opacity-2", nextLayer === 2 ? "1" : "0");
-  shell.classList.add("glow-enabled");
+  container.style.setProperty(`--emotion-gradient-${nextLayer}`, gradient);
+  container.style.setProperty("--emotion-opacity-1", nextLayer === 1 ? "1" : "0");
+  container.style.setProperty("--emotion-opacity-2", nextLayer === 2 ? "1" : "0");
+  container.classList.add("emotion-enabled");
   activeLayer = nextLayer;
 }
 
-/** Build radial / conic gradient */
+/** Build radial / conic gradient for full-page background */
 function buildGlowGradient(colors) {
   const stops = colors.map(
     (c) => `hsla(${c.h} ${c.s}% ${c.l}% / ${c.a})`
@@ -97,10 +97,19 @@ function buildGlowGradient(colors) {
 
   if (stops.length === 1) {
     const c = stops[0];
-    return `radial-gradient(circle at 50% 50%, ${c} 0%, ${c} 30%, rgba(0,0,0,0) 85%)`;
+    return `radial-gradient(ellipse at center, ${c} 0%, rgba(0,0,0,0) 70%)`;
   }
 
-  return `conic-gradient(from 180deg, ${stops.join(", ")}, ${stops[0]})`;
+  // Create a smooth multi-stop gradient for full-page background
+  const gradientStops = [];
+  for (let i = 0; i < stops.length; i++) {
+    const percent = (i / stops.length) * 100;
+    gradientStops.push(`${stops[i]} ${percent}%`);
+  }
+  // Add first color again to complete the loop
+  gradientStops.push(`${stops[0]} 100%`);
+
+  return `linear-gradient(135deg, ${gradientStops.join(", ")})`;
 }
 
 /** Gentle hue ordering */
