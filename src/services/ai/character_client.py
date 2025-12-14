@@ -18,7 +18,7 @@ from src.infrastructure.utils.logger import (
 logger = logging.getLogger(__name__)
 
 
-class RinClient:
+class CharacterClient:
     def __init__(
         self,
         message_service: MessageService,
@@ -40,7 +40,7 @@ class RinClient:
     async def start(self, session_id: str):
         self._running = True
         self.session_id = session_id
-        logger.info(f"RinClient started for session {session_id}")
+        logger.info(f"CharacterClient started for session {session_id}")
 
     async def stop(self):
         self._running = False
@@ -58,10 +58,10 @@ class RinClient:
 
         # Close the HTTP client
         await self.llm_client.close()
-        logger.info("RinClient stopped")
+        logger.info("CharacterClient stopped")
 
     def update_character(self, character: Character):
-        """Update the character configuration for this RinClient instance.
+        """Update the character configuration for this CharacterClient instance.
         
         This updates both the character reference and recreates the coordinator
         with the new character configuration.

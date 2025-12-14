@@ -11,7 +11,7 @@ from src.infrastructure.database.repositories import (
 from src.services.messaging.message_service import MessageService
 from src.services.character.character_service import CharacterService
 from src.services.config.config_service import ConfigService
-from src.services.ai.rin_client import RinClient
+from src.services.ai.character_client import CharacterClient
 from src.infrastructure.network.websocket_manager import WebSocketManager
 from src.core.models.message import MessageType
 from src.api.schemas import LLMConfig
@@ -35,7 +35,7 @@ message_service: Optional[MessageService] = None
 character_service: Optional[CharacterService] = None
 config_service: Optional[ConfigService] = None
 ws_manager: Optional[WebSocketManager] = None
-rin_clients: Dict[str, RinClient] = {}
+character_clients: Dict[str, CharacterClient] = {}
 
 
 async def initialize_services():
@@ -168,8 +168,8 @@ async def handle_client_message(
         elif msg_type == "clear_session":
             await handle_clear_session(session_id)
 
-        elif msg_type == "init_rin":
-            await handle_init_rin(session_id, data)
+        elif msg_type == "init_character":
+            await handle_init_character(session_id, data)
 
         elif msg_type == "mark_read":
             await handle_mark_read(session_id, data)
@@ -222,9 +222,9 @@ async def handle_send_message(session_id: str, user_id: str, data: Dict[str, Any
         }
         await ws_manager.send_to_conversation(session_id, event)
 
-    rin_client = rin_clients.get(session_id)
-    if rin_client:
-        await rin_client.process_user_message(messages[-1])
+    character_client = character_clients.get(session_id)
+    if character_client:
+        await character_client.process_user_message(messages[-1])
 
 
 async def handle_set_typing(session_id: str, user_id: str, data: Dict[str, Any]):
@@ -325,10 +325,10 @@ async def handle_clear_session(session_id: str):
 
     new_session_id = await character_service.recreate_session(session.character_id)
     if new_session_id:
-        rin_client = rin_clients.get(session_id)
-        if rin_client:
-            await rin_client.stop()
-            del rin_clients[session_id]
+        character_client = character_clients.get(session_id)
+        if character_client:
+            await character_client.stop()
+            del character_clients[session_id]
 
         event = {
             "type": "session_recreated",
@@ -337,14 +337,14 @@ async def handle_clear_session(session_id: str):
         await ws_manager.send_to_conversation(session_id, event)
 
 
-async def handle_init_rin(session_id: str, data: Dict[str, Any]):
-    if session_id in rin_clients:
-        old_client = rin_clients.get(session_id)
+async def handle_init_character(session_id: str, data: Dict[str, Any]):
+    if session_id in character_clients:
+        old_client = character_clients.get(session_id)
         if old_client:
             await old_client.stop()
-        rin_clients.pop(session_id, None)
+        character_clients.pop(session_id, None)
         log_entry = unified_logger.info(
-            f"Rin reinitialized for session {session_id}",
+            f"CharacterClient reinitialized for session {session_id}",
             category=LogCategory.WEBSOCKET,
         )
         await broadcast_log_if_needed(log_entry)
@@ -409,18 +409,18 @@ async def handle_init_rin(session_id: str, data: Dict[str, Any]):
         or config.get("user_nickname"),
     )
 
-    rin_client = RinClient(
+    character_client = CharacterClient(
         message_service=message_service,
         ws_manager=ws_manager,
         llm_config=llm_config,
         character=character,
     )
 
-    await rin_client.start(session_id)
-    rin_clients[session_id] = rin_client
+    await character_client.start(session_id)
+    character_clients[session_id] = character_client
 
     log_entry = unified_logger.info(
-        f"Rin initialized for session {session_id} with character {character.name}",
+        f"CharacterClient initialized for session {session_id} with character {character.name}",
         category=LogCategory.WEBSOCKET,
     )
     await broadcast_log_if_needed(log_entry)
@@ -445,30 +445,30 @@ async def cleanup_resources():
     )
     await broadcast_log_if_needed(log_entry)
 
-    # Stop all RinClient instances
-    if rin_clients:
+    # Stop all CharacterClient instances
+    if character_clients:
         log_entry = unified_logger.info(
-            f"Stopping {len(rin_clients)} RinClient instances",
+            f"Stopping {len(character_clients)} CharacterClient instances",
             category=LogCategory.WEBSOCKET,
         )
         await broadcast_log_if_needed(log_entry)
 
-        for session_id, rin_client in list(rin_clients.items()):
+        for session_id, character_client in list(character_clients.items()):
             try:
-                await rin_client.stop()
+                await character_client.stop()
                 log_entry = unified_logger.info(
-                    f"Stopped RinClient for session {session_id}",
+                    f"Stopped CharacterClient for session {session_id}",
                     category=LogCategory.WEBSOCKET,
                 )
                 await broadcast_log_if_needed(log_entry)
             except Exception as e:
                 log_entry = unified_logger.error(
-                    f"Error stopping RinClient for session {session_id}: {e}",
+                    f"Error stopping CharacterClient for session {session_id}: {e}",
                     category=LogCategory.WEBSOCKET,
                 )
                 await broadcast_log_if_needed(log_entry)
 
-        rin_clients.clear()
+        character_clients.clear()
 
     # Close all WebSocket connections
     if ws_manager:

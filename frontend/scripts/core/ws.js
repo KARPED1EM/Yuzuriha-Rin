@@ -74,8 +74,8 @@ export class WsClient {
   /**
    * @param {Record<string, any>} config
    */
-  initRin(config) {
-    this.send("init_rin", {
+  initCharacter(config) {
+    this.send("init_character", {
       llm_config: {
         provider: config.llm_provider,
         api_key: config.llm_api_key,
