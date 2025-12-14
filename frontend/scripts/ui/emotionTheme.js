@@ -97,7 +97,7 @@ function buildGlowGradient(colors) {
 
   if (stops.length === 1) {
     const c = stops[0];
-    // Single color: use radial gradient from center
+    // Single color: use radial gradient from center with elliptical shape
     return `radial-gradient(ellipse at 50% 50%, ${c} 0%, transparent 70%)`;
   }
 
@@ -107,14 +107,11 @@ function buildGlowGradient(colors) {
   }
 
   // Multiple colors: create smooth flowing gradient
-  // Distribute colors evenly and add intermediate blend points for smoothness
-  const gradientStops = [];
-  const step = 100 / colors.length;
-  
-  for (let i = 0; i < colors.length; i++) {
-    const pos = i * step;
-    gradientStops.push(`${stops[i]} ${pos}%`);
-  }
+  // Distribute colors evenly across the gradient
+  const gradientStops = colors.map((_, i) => {
+    const pos = (i * 100) / colors.length;
+    return `${stops[i]} ${pos}%`;
+  });
   
   // Complete the loop for seamless animation
   gradientStops.push(`${stops[0]} 100%`);
