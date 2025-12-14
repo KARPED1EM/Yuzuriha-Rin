@@ -31,7 +31,7 @@ SYSTEM_BEHAVIOR_PROMPT = """
 可用工具：
 - get_avatar_descriptions: 查看你自己和对方的头像描述。无需参数。示例: {"name": "get_avatar_descriptions", "arguments": {}}
 - get_recallable_messages: 查看2分钟内你发送的可撤回消息列表。无需参数。示例: {"name": "get_recallable_messages", "arguments": {}}
-- recall_message_by_id: 撤回指定ID的消息（3分钟内有效）。参数: message_id。示例: {"name": "recall_message_by_id", "arguments": {"message_id": "msg-abc123"}}
+- recall_message_by_id: 撤回指定ID的消息（2分钟内有效）。参数: message_id。示例: {"name": "recall_message_by_id", "arguments": {"message_id": "msg-abc123"}}
 - block_user: 拉黑用户。可随心情使用，符合人设即可。无需参数。示例: {"name": "block_user", "arguments": {}}
 """.strip()
 

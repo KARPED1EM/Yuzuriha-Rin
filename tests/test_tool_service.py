@@ -120,12 +120,12 @@ class TestToolService:
 
     @pytest.mark.asyncio
     async def test_recall_message_by_id_too_old(self):
-        """Test recalling a message that's too old (>3 minutes)."""
+        """Test recalling a message that's too old (>2 minutes)."""
         session_id = "test-session"
         message_id = "msg-1"
         current_time = datetime.now(timezone.utc).timestamp()
         
-        THREE_MINUTES_IN_SECONDS = 180
+        TWO_MINUTES_IN_SECONDS = 120
         
         message = Message(
             id=message_id,
@@ -136,7 +136,7 @@ class TestToolService:
             metadata={},
             is_recalled=False,
             is_read=False,
-            timestamp=current_time - (THREE_MINUTES_IN_SECONDS + 20)  # 3min 20sec ago
+            timestamp=current_time - (TWO_MINUTES_IN_SECONDS + 20)  # 2min 20sec ago
         )
         
         self.mock_message_service.get_message = AsyncMock(return_value=message)
@@ -144,7 +144,7 @@ class TestToolService:
         result = await self.tool_service.recall_message_by_id(session_id, message_id)
         
         assert result["success"] is False
-        assert "older than 3 minutes" in result["error"]
+        assert "older than 2 minutes" in result["error"]
 
     @pytest.mark.asyncio
     async def test_block_user(self):
