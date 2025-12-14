@@ -72,8 +72,7 @@ textarea {
     animation: emotionFlow2 20s ease-in-out infinite;
 }
 
-.app-container.emotion-enabled::before,
-.app-container.emotion-enabled::after {
+.app-container.emotion-enabled::before {
     opacity: var(--emotion-opacity-1);
 }
 
