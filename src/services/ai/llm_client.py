@@ -3,7 +3,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import httpx
 
@@ -361,7 +361,7 @@ class LLMClient:
 
         return f"{SYSTEM_BEHAVIOR_PROMPT}{persona_section}{additional_context}"
 
-    def _parse_structured_response(self, raw_text: str) -> tuple[Dict[str, Any], bool]:
+    def _parse_structured_response(self, raw_text: str) -> Tuple[Dict[str, Any], bool]:
         """
         Parse JSON returned by the LLM. Falls back to best-effort extraction.
         Returns (parsed_dict, is_invalid_json)

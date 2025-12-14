@@ -63,6 +63,12 @@ async def initialize_services():
         logger.info("REST API services initialized")
 
 
+def get_active_rin_clients():
+    """Get active RinClient instances. Imported here to avoid circular dependencies."""
+    from src.api import ws_routes
+    return ws_routes.rin_clients
+
+
 class CharacterCreate(BaseModel):
     name: str
     avatar: Optional[str] = None
@@ -283,9 +289,9 @@ async def update_character(character_id: str, data: CharacterUpdate):
         raise HTTPException(status_code=500, detail="Failed to update character")
 
     # Update active RinClient instances using this character
-    from src.api import ws_routes
+    rin_clients = get_active_rin_clients()
     updated_sessions = []
-    for session_id, rin_client in ws_routes.rin_clients.items():
+    for session_id, rin_client in rin_clients.items():
         if hasattr(rin_client, 'character') and rin_client.character.id == character_id:
             try:
                 rin_client.update_character_config(character)
