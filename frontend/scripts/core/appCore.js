@@ -143,7 +143,7 @@ export function createApp() {
       client.onOpen(() => {
         reconnectController.markConnected(session.id);
         if (isConfigValid(state.config)) {
-          client.initRin(state.config);
+          client.initCharacter(state.config);
         }
       });
       client.onClose(() => reconnectController.markDisconnected(session.id));
@@ -250,7 +250,7 @@ export function createApp() {
         newClient.onOpen(() => {
           reconnectController.markConnected(new_session_id);
           if (isConfigValid(state.config)) {
-            newClient.initRin(state.config);
+            newClient.initCharacter(state.config);
           }
         });
         newClient.onClose(() => reconnectController.markDisconnected(new_session_id));
@@ -389,7 +389,7 @@ export function createApp() {
           ensureSessionConnections();
           if (isConfigValid(state.config)) {
             for (const client of wsClientsBySession.values()) {
-              client.initRin(state.config);
+              client.initCharacter(state.config);
             }
           }
         }
@@ -481,7 +481,7 @@ export function createApp() {
           ensureSessionConnections();
           if (isConfigValid(state.config)) {
             for (const client of wsClientsBySession.values()) {
-              client.initRin(state.config);
+              client.initCharacter(state.config);
             }
           }
         }
