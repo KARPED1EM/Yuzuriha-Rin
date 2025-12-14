@@ -4,6 +4,7 @@
 """
 
 import sys
+import json
 import shutil
 import urllib.request
 import re
@@ -243,6 +244,7 @@ class StickerWidget(QFrame):
 
     delete_clicked = pyqtSignal(str)  # 发送文件路径
     description_updated = pyqtSignal()  # 描述更新信号
+    description_save_failed = pyqtSignal(str)  # 保存失败信号
 
     def __init__(self, image_path: Path, sticker_base: Path, parent=None):
         super().__init__(parent)
@@ -272,14 +274,16 @@ class StickerWidget(QFrame):
         except Exception:
             return {}
 
-    def save_image_alter_data(self, data: dict):
-        """保存 image_alter.json"""
+    def save_image_alter_data(self, data: dict) -> bool:
+        """保存 image_alter.json，返回是否成功"""
         json_path = self.sticker_base.parent / "image_alter.json"
         try:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            return True
         except Exception as e:
-            print(f"Failed to save image_alter.json: {e}")
+            self.description_save_failed.emit(str(e))
+            return False
 
     def get_current_description(self) -> str:
         """获取当前图片的描述"""
@@ -1258,6 +1262,9 @@ class StickerManagerWindow(QMainWindow):
             widget = StickerWidget(image_path, self.sticker_base)
             widget.delete_clicked.connect(self.delete_sticker)
             widget.description_updated.connect(lambda: self.show_toast("描述已更新", True))
+            widget.description_save_failed.connect(
+                lambda err: self.show_toast(f"保存失败: {err}", False)
+            )
             self.gallery_area.sticker_layout.addWidget(widget, row, col)
 
             col += 1

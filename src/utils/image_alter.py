@@ -9,12 +9,12 @@ class ImageAlter:
     """Provides text descriptions for local image files."""
 
     _instance = None
-    _cache: dict[str, str] = {}
     _json_path: Path = Path(__file__).parent.parent.parent / "data" / "image_alter.json"
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance._cache = {}
         return cls._instance
 
     def get_description(self, image_path: str) -> Optional[str]:
