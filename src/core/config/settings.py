@@ -22,10 +22,12 @@ class CharacterConfig(BaseSettings):
 
 
 class LLMDefaults(BaseSettings):
-    provider: str = "deepseek"
-    model_openai: str = "gpt-5.1-chat"
-    model_anthropic: str = "claude-sonnet-4-5-20250929"
-    model_deepseek: str = "deepseek-chat"
+    # Protocol-based configuration defaults
+    protocol: str = "completions"  # Default to completions (/chat/completions)
+    base_url: str = ""  # Required but default empty
+    api_key: str = ""  # Required but default empty
+    model: str = ""  # Required but default empty
+    max_tokens: int = 1000  # Required, default 1000
 
     class Config:
         env_file = ".env"

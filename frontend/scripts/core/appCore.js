@@ -519,10 +519,11 @@ export function createApp() {
   }
 
   function isConfigValid(config) {
-    const provider = config.llm_provider;
+    const protocol = config.llm_protocol;
     const apiKey = config.llm_api_key;
     const model = config.llm_model;
-    if (!provider || !apiKey || !model) return false;
+    const baseUrl = config.llm_base_url;
+    if (!protocol || !apiKey || !model || !baseUrl) return false;
     return true;
   }
 
