@@ -125,6 +125,8 @@ class TestToolService:
         message_id = "msg-1"
         current_time = datetime.now(timezone.utc).timestamp()
         
+        THREE_MINUTES_IN_SECONDS = 180
+        
         message = Message(
             id=message_id,
             session_id=session_id,
@@ -134,7 +136,7 @@ class TestToolService:
             metadata={},
             is_recalled=False,
             is_read=False,
-            timestamp=current_time - 200  # More than 3 minutes ago
+            timestamp=current_time - (THREE_MINUTES_IN_SECONDS + 20)  # 3min 20sec ago
         )
         
         self.mock_message_service.get_message = AsyncMock(return_value=message)

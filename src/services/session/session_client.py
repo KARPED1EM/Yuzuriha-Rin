@@ -9,6 +9,7 @@ from src.core.models.behavior import PlaybackAction
 from src.services.messaging.message_service import MessageService
 from src.core.models.message import Message, MessageType
 from src.core.models.character import Character
+from src.core.models.constants import DEFAULT_USER_AVATAR
 from src.infrastructure.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
@@ -200,7 +201,7 @@ class SessionClient:
                             tool_args=tool_args,
                             session_id=user_message.session_id,
                             character_avatar=self.character.avatar,
-                            user_avatar="/static/images/avatar/user.webp",  # Default user avatar
+                            user_avatar=DEFAULT_USER_AVATAR,
                         )
                         
                         log_entry = unified_logger.info(

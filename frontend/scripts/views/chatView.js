@@ -282,7 +282,7 @@ function addBlockedIndicator(messageElement) {
   const indicator = document.createElement("span");
   indicator.className = "blocked-indicator";
   indicator.textContent = "!";
-  indicator.title = "This message was sent after being blocked";
+  indicator.title = "此消息在被拉黑后发送";
   
   // Insert the indicator at the beginning of the message
   messageElement.insertBefore(indicator, messageElement.firstChild);

@@ -8,6 +8,64 @@ from src.services.messaging.message_service import MessageService
 from src.utils.image_alter import image_alter
 
 
+# Tool definitions for LLM (can be customized in future)
+TOOL_DEFINITIONS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_avatar_descriptions",
+            "description": "查看当前角色自己和用户的头像描述信息。不需要任何参数，直接调用即可获取双方的头像描述。",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_recallable_messages",
+            "description": "查看可撤回的消息列表。返回2分钟内所有由AI助手（assistant）发送的、尚未被撤回的消息及其ID。",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "recall_message_by_id",
+            "description": "撤回指定ID的消息。传入一个消息ID，如果该消息在3分钟内且是助手发送的，则将其撤回。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message_id": {
+                        "type": "string",
+                        "description": "要撤回的消息ID",
+                    }
+                },
+                "required": ["message_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "block_user",
+            "description": "拉黑用户。可以随心情使用，没有任何规则限制，但要符合角色人设。一旦调用此工具，将添加一条系统拉黑消息，用户后续发送的消息将被拒收。",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+]
+
+
 class ToolService:
     """Service for handling LLM tool calls."""
 
@@ -178,61 +236,3 @@ class ToolService:
             "blocked": True,
             "blocked_message_id": blocked_msg.id,
         }
-
-
-# Tool definitions for LLM
-TOOL_DEFINITIONS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_avatar_descriptions",
-            "description": "查看当前角色自己和用户的头像描述信息。不需要任何参数，直接调用即可获取双方的头像描述。",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_recallable_messages",
-            "description": "查看可撤回的消息列表。返回2分钟内所有由AI助手（assistant）发送的、尚未被撤回的消息及其ID。",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "recall_message_by_id",
-            "description": "撤回指定ID的消息。传入一个消息ID，如果该消息在3分钟内且是助手发送的，则将其撤回。",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "message_id": {
-                        "type": "string",
-                        "description": "要撤回的消息ID",
-                    }
-                },
-                "required": ["message_id"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "block_user",
-            "description": "拉黑用户。可以随心情使用，没有任何规则限制，但要符合角色人设。一旦调用此工具，将添加一条系统拉黑消息，用户后续发送的消息将被拒收。",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        },
-    },
-]
