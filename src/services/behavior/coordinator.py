@@ -2,12 +2,7 @@ from typing import List
 import uuid
 import random
 
-from src.services.behavior.models import (
-    BehaviorConfig,
-    EmotionState,
-    PlaybackAction,
-    TimelineConfig,
-)
+from src.services.behavior.models import EmotionState, PlaybackAction
 from src.services.behavior.segmenter import SmartSegmenter
 from src.services.behavior.emotion import EmotionFetcher
 from src.services.behavior.typo import TypoInjector
@@ -15,16 +10,15 @@ from src.services.behavior.pause import PausePredictor
 from src.services.behavior.timeline import TimelineBuilder
 from src.services.behavior.sticker import StickerSelector
 from src.infrastructure.utils.logger import unified_logger, LogCategory
+from src.core.models.character import Character
 
 
 class BehaviorCoordinator:
-    def __init__(
-        self, config: BehaviorConfig = None, timeline_config: TimelineConfig = None
-    ):
-        self.config = config or BehaviorConfig()
-        self.segmenter = SmartSegmenter(max_length=self.config.max_segment_length)
+    def __init__(self, character: Character):
+        self.character = character
+        self.segmenter = SmartSegmenter(max_length=character.max_segment_length)
         self.typo_injector = TypoInjector()
-        self.timeline_builder = TimelineBuilder(timeline_config)
+        self.timeline_builder = TimelineBuilder(character)
         self.pending_log_entries = []
 
     def get_and_clear_log_entries(self) -> List:
@@ -69,12 +63,12 @@ class BehaviorCoordinator:
 
         should_send, sticker_path, log_entry = StickerSelector.select_sticker(
             cleaned_input,
-            self.config.sticker_packs,
+            self.character.sticker_packs,
             normalized_emotion_map,
-            self.config.sticker_send_probability,
-            self.config.sticker_confidence_threshold_positive,
-            self.config.sticker_confidence_threshold_neutral,
-            self.config.sticker_confidence_threshold_negative,
+            self.character.sticker_send_probability,
+            self.character.sticker_confidence_threshold_positive,
+            self.character.sticker_confidence_threshold_neutral,
+            self.character.sticker_confidence_threshold_negative,
         )
         
         if log_entry:
@@ -86,17 +80,13 @@ class BehaviorCoordinator:
         timeline = self.timeline_builder.build_timeline(actions)
         return timeline
 
-    def update_config(self, config: BehaviorConfig):
-        self.config = config
-        self.segmenter = SmartSegmenter(max_length=config.max_segment_length)
-
     def get_emotion(self, text: str, emotion_map: dict | None = None) -> EmotionState:
         normalized_map = EmotionFetcher.normalize_map(emotion_map)
         return self._fetch_emotion(text, normalized_map)
 
     def _segment_and_clean(self, text: str) -> List[str]:
         segments = [text]
-        if self.config.enable_segmentation:
+        if self.character.enable_segmentation:
             try:
                 segments = self.segmenter.segment(text)
             except Exception as exc:
@@ -132,9 +122,18 @@ class BehaviorCoordinator:
         }
 
         has_typo, typo_text = False, None
-        if self.config.enable_typo:
-            emotion_multiplier = self.config.emotion_typo_multiplier.get(emotion, 1.0)
-            typo_rate = self.config.base_typo_rate * emotion_multiplier
+        if self.character.enable_typo:
+            # emotion_typo_multiplier is hardcoded in Character defaults
+            emotion_multiplier = {
+                EmotionState.NEUTRAL: 1.0,
+                EmotionState.HAPPY: 1.2,
+                EmotionState.EXCITED: 2.0,
+                EmotionState.SAD: 0.5,
+                EmotionState.ANGRY: 2.3,
+                EmotionState.ANXIOUS: 1.3,
+                EmotionState.CONFUSED: 0.3,
+            }.get(emotion, 1.0)
+            typo_rate = self.character.base_typo_rate * emotion_multiplier
             (has_typo, typo_variant, _, _) = self.typo_injector.inject_typo(
                 segment_text, typo_rate=typo_rate
             )
@@ -153,8 +152,8 @@ class BehaviorCoordinator:
         )
         actions.append(send_action)
 
-        if has_typo and typo_text and self.config.enable_recall:
-            if TypoInjector.should_recall_typo(self.config.typo_recall_rate):
+        if has_typo and typo_text and self.character.enable_recall:
+            if TypoInjector.should_recall_typo(self.character.typo_recall_rate):
                 actions.extend(
                     self._build_recall_sequence(
                         typo_action=send_action,
@@ -165,11 +164,21 @@ class BehaviorCoordinator:
                 )
 
         if segment_index < total_segments - 1:
+            # emotion_pause_multiplier is hardcoded
+            emotion_multipliers = {
+                EmotionState.NEUTRAL: 1.0,
+                EmotionState.HAPPY: 0.9,
+                EmotionState.EXCITED: 0.8,
+                EmotionState.SAD: 1.4,
+                EmotionState.ANGRY: 0.7,
+                EmotionState.ANXIOUS: 1.1,
+                EmotionState.CONFUSED: 1.3,
+            }
             interval = PausePredictor.segment_interval(
                 emotion=emotion,
-                emotion_multipliers=self.config.emotion_pause_multiplier,
-                min_duration=self.config.min_pause_duration,
-                max_duration=self.config.max_pause_duration,
+                emotion_multipliers=emotion_multipliers,
+                min_duration=self.character.min_pause_duration,
+                max_duration=self.character.max_pause_duration,
             )
             if interval > 0:
                 actions.append(
@@ -195,11 +204,11 @@ class BehaviorCoordinator:
     ) -> List[PlaybackAction]:
         recall_actions: List[PlaybackAction] = []
 
-        if self.config.recall_delay > 0:
+        if self.character.recall_delay > 0:
             recall_actions.append(
                 PlaybackAction(
                     type="pause",
-                    duration=self.config.recall_delay,
+                    duration=self.character.recall_delay,
                     metadata={"reason": "typo_recall_delay"},
                 )
             )
@@ -212,11 +221,11 @@ class BehaviorCoordinator:
             )
         )
 
-        if self.config.retype_delay > 0:
+        if self.character.retype_delay > 0:
             recall_actions.append(
                 PlaybackAction(
                     type="pause",
-                    duration=self.config.retype_delay,
+                    duration=self.character.retype_delay,
                     metadata={"reason": "typo_retype_wait"},
                 )
             )
@@ -238,7 +247,7 @@ class BehaviorCoordinator:
     def _fetch_emotion(
         self, text: str, emotion_map: dict | None = None
     ) -> EmotionState:
-        if not self.config.enable_emotion_fetch:
+        if not self.character.enable_emotion_detection:
             return EmotionState.NEUTRAL
         return EmotionFetcher.fetch(emotion_map=emotion_map, fallback_text=text)
 

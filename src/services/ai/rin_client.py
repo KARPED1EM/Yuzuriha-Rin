@@ -5,8 +5,7 @@ from typing import List, Any
 from src.services.ai.llm_client import LLMClient
 from src.api.schemas import LLMConfig, ChatMessage
 from src.services.behavior.coordinator import BehaviorCoordinator
-from src.services.behavior.models import BehaviorConfig, PlaybackAction
-from src.services.behavior.timeline import TimelineConfig
+from src.services.behavior.models import PlaybackAction
 from src.services.messaging.message_service import MessageService
 from src.core.models.message import Message, MessageType
 from src.core.models.character import Character
@@ -33,62 +32,7 @@ class RinClient:
         self.character = character
         self.user_id = "assistant"
 
-        behavior_config = BehaviorConfig(
-            enable_segmentation=character.enable_segmentation,
-            enable_typo=character.enable_typo,
-            enable_recall=character.enable_recall,
-            enable_emotion_fetch=character.enable_emotion_detection,
-            max_segment_length=character.max_segment_length,
-            min_pause_duration=character.min_pause_duration,
-            max_pause_duration=character.max_pause_duration,
-            base_typo_rate=character.base_typo_rate,
-            typo_recall_rate=character.typo_recall_rate,
-            recall_delay=character.recall_delay,
-            retype_delay=character.retype_delay,
-            sticker_packs=character.sticker_packs or [],
-            sticker_send_probability=character.sticker_send_probability,
-            sticker_confidence_threshold_positive=character.sticker_confidence_threshold_positive,
-            sticker_confidence_threshold_neutral=character.sticker_confidence_threshold_neutral,
-            sticker_confidence_threshold_negative=character.sticker_confidence_threshold_negative,
-        )
-
-        timeline_config = TimelineConfig(
-            hesitation_probability=character.hesitation_probability,
-            hesitation_cycles_min=character.hesitation_cycles_min,
-            hesitation_cycles_max=character.hesitation_cycles_max,
-            hesitation_duration_min=character.hesitation_duration_min,
-            hesitation_duration_max=character.hesitation_duration_max,
-            hesitation_gap_min=character.hesitation_gap_min,
-            hesitation_gap_max=character.hesitation_gap_max,
-            typing_lead_time_threshold_1=character.typing_lead_time_threshold_1,
-            typing_lead_time_1=character.typing_lead_time_1,
-            typing_lead_time_threshold_2=character.typing_lead_time_threshold_2,
-            typing_lead_time_2=character.typing_lead_time_2,
-            typing_lead_time_threshold_3=character.typing_lead_time_threshold_3,
-            typing_lead_time_3=character.typing_lead_time_3,
-            typing_lead_time_threshold_4=character.typing_lead_time_threshold_4,
-            typing_lead_time_4=character.typing_lead_time_4,
-            typing_lead_time_threshold_5=character.typing_lead_time_threshold_5,
-            typing_lead_time_5=character.typing_lead_time_5,
-            typing_lead_time_default=character.typing_lead_time_default,
-            entry_delay_min=character.entry_delay_min,
-            entry_delay_max=character.entry_delay_max,
-            initial_delay_weight_1=character.initial_delay_weight_1,
-            initial_delay_range_1_min=character.initial_delay_range_1_min,
-            initial_delay_range_1_max=character.initial_delay_range_1_max,
-            initial_delay_weight_2=character.initial_delay_weight_2,
-            initial_delay_range_2_min=character.initial_delay_range_2_min,
-            initial_delay_range_2_max=character.initial_delay_range_2_max,
-            initial_delay_weight_3=character.initial_delay_weight_3,
-            initial_delay_range_3_min=character.initial_delay_range_3_min,
-            initial_delay_range_3_max=character.initial_delay_range_3_max,
-            initial_delay_range_4_min=character.initial_delay_range_4_min,
-            initial_delay_range_4_max=character.initial_delay_range_4_max,
-        )
-
-        self.coordinator = BehaviorCoordinator(
-            config=behavior_config, timeline_config=timeline_config
-        )
+        self.coordinator = BehaviorCoordinator(character)
         self._running = False
         self._tasks = []
         self.session_id = None
