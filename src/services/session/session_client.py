@@ -537,6 +537,8 @@ class SessionClient:
             meta = msg.metadata or {}
             parts = [f"{k}={v}" for k, v in meta.items()]
             return "Emotion state: " + (", ".join(parts) if parts else "neutral")
+        if msg.type == MessageType.SYSTEM_BLOCKED:
+            return "系统提示：你已拉黑对方。"
         # Fallback for other system messages.
         return msg.content or ""
 
