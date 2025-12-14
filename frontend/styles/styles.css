@@ -781,8 +781,8 @@ textarea {
 /* Blocked message indicator */
 .blocked-indicator {
     position: absolute;
-    right: calc(100% + 6px);  /* Position to the left of the bubble with spacing */
-    bottom: 0;  /* Align to bottom of bubble */
+    right: calc(100% + 8px);  /* Position to the left of the bubble with spacing */
+    bottom: 8px;
     width: 18px;
     height: 18px;
     background: #ff5252;
