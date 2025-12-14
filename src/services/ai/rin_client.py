@@ -60,6 +60,16 @@ class RinClient:
         await self.llm_client.close()
         logger.info("RinClient stopped")
 
+    def update_character(self, character: Character):
+        """Update the character configuration for this RinClient instance.
+        
+        This updates both the character reference and recreates the coordinator
+        with the new character configuration.
+        """
+        self.character = character
+        self.coordinator = BehaviorCoordinator(character)
+        logger.info(f"Character configuration updated for session {self.session_id}")
+
     async def process_user_message(self, user_message: Message):
         if not self._running:
             return

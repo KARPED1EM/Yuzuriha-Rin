@@ -272,36 +272,36 @@ async def update_character(character_id: str, data: CharacterUpdate):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update character")
 
-    # Notify active sessions to reinitialize RinClient for this character
-    # This is simpler and more reliable than trying to update config in-place
+    # Update character configuration in active RinClient instances
     from src.api import ws_routes
-    reinitialized_sessions = []
+    updated_sessions = []
     for session_id, rin_client in list(ws_routes.rin_clients.items()):
         if hasattr(rin_client, 'character') and rin_client.character.id == character_id:
             try:
-                # Send notification to frontend that client is reinitializing
+                # Update the character configuration in the RinClient
+                rin_client.update_character(character)
+                # Send notification to frontend that config is updated
                 if ws_routes.ws_manager:
                     await ws_routes.ws_manager.send_toast(
                         session_id,
-                        "角色配置已更新，正在重新初始化...",
+                        "角色配置已更新",
                         level="info"
                     )
-                reinitialized_sessions.append(session_id)
+                updated_sessions.append(session_id)
             except Exception as e:
                 log_entry = unified_logger.warning(
-                    f"Failed to notify session {session_id}: {e}",
+                    f"Failed to update character for session {session_id}: {e}",
                     category=LogCategory.BEHAVIOR,
                 )
                 await broadcast_log_if_needed(log_entry)
     
-    if reinitialized_sessions:
+    if updated_sessions:
         log_entry = unified_logger.info(
-            f"Character config updated, {len(reinitialized_sessions)} sessions need reinitialization",
+            f"Character config updated for {len(updated_sessions)} active sessions",
             category=LogCategory.BEHAVIOR,
             metadata={
                 "character_id": character_id,
-                "sessions": reinitialized_sessions,
-                "note": "Clients will reinitialize on next init_rin message",
+                "sessions": updated_sessions,
             },
         )
         await broadcast_log_if_needed(log_entry)
