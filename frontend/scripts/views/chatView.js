@@ -518,13 +518,13 @@ function sendCurrentText() {
   
   // Check if wsClient exists and is ready
   if (!wsClient) {
-    showToast("连接未建立，请稍后重试", "error");
+    showToast("连接未建立，请稍后重试", "error"); // "Connection not established, please try again later"
     return;
   }
   
   // Check if WebSocket is open
   if (!wsClient.ws || wsClient.ws.readyState !== WebSocket.OPEN) {
-    showToast("正在连接，请稍后重试", "info");
+    showToast("正在连接，请稍后重试", "info"); // "Connecting, please try again later"
     return;
   }
   
