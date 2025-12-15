@@ -7,7 +7,7 @@ from src.core.models.message import (
     MessageType,
     ALLOWED_SYSTEM_MESSAGE_TYPES,
 )
-from src.infrastructure.database.repositories.message_repo import MessageRepository
+from src.core.interfaces.repositories import IMessageRepository
 from src.core.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
@@ -18,7 +18,7 @@ TIME_MESSAGE_INTERVAL = 300
 
 
 class MessageService:
-    def __init__(self, message_repo: MessageRepository):
+    def __init__(self, message_repo: IMessageRepository):
         self.message_repo = message_repo
 
     async def _ensure_system_invariants(

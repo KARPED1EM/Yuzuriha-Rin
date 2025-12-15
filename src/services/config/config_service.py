@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Optional
-from src.infrastructure.database.repositories.config_repo import ConfigRepository
+from src.core.interfaces.repositories import IConfigRepository
 from src.core.config import llm_defaults, ui_defaults, app_config
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ DEFAULT_CONFIG = {
 
 
 class ConfigService:
-    def __init__(self, config_repo: ConfigRepository):
+    def __init__(self, config_repo: IConfigRepository):
         self.config_repo = config_repo
 
     async def get_config(self, key: str) -> Optional[str]:

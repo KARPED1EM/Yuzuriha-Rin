@@ -2,12 +2,13 @@ import logging
 import hashlib
 import json
 from typing import List, Optional, Dict
+from src.core.interfaces.repositories import IConfigRepository
 from src.infrastructure.database.repositories.base import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class ConfigRepository(BaseRepository[Dict]):
+class ConfigRepository(BaseRepository[Dict], IConfigRepository):
     async def get_by_id(self, id: str) -> Optional[Dict]:
         return await self.get_config(id)
 
