@@ -245,10 +245,8 @@ export function renderChatSession(sessionId, opts = {}) {
       markAllRead(sessionId);
       updateNewMessageIndicator(sessionId, container);
     } else {
-      const newHeight = container.scrollHeight;
-      const delta = newHeight - prevScrollHeight;
-      container.scrollTop = prevScrollTop + Math.max(0, delta);
-      // After adjusting scroll position, check what's visible and mark as read
+      // User is scrolled up - do NOT adjust scroll position, keep it exactly where it is
+      // After render completes, check what's visible and mark as read
       // Use requestAnimationFrame to ensure DOM layout is updated before checking scroll position
       // handleScroll already calls updateNewMessageIndicator
       requestAnimationFrame(() => handleScroll(container));
@@ -673,7 +671,10 @@ function isAtBottom(container) {
 }
 
 function scrollToBottom(container) {
-  container.scrollTop = container.scrollHeight;
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  });
 }
 
 function updateTypingIndicator(sessionId, metadata) {
