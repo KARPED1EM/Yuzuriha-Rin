@@ -249,7 +249,11 @@ export function renderChatSession(sessionId, opts = {}) {
       // After render completes, check what's visible and mark as read
       // Use requestAnimationFrame to ensure DOM layout is updated before checking scroll position
       // handleScroll already calls updateNewMessageIndicator
-      requestAnimationFrame(() => handleScroll(container));
+      console.log('[renderChatSession] User scrolled up, scheduling handleScroll');
+      requestAnimationFrame(() => {
+        console.log('[renderChatSession] requestAnimationFrame callback executing');
+        handleScroll(container);
+      });
     }
   }
 
@@ -587,7 +591,10 @@ function handleScroll(container) {
   const messageNodes = Array.from(
     container.querySelectorAll(".message[data-timestamp]"),
   );
+  console.log('[handleScroll] Start', { sessionId, visibleBottom, totalMessages: messageNodes.length });
+  
   let maxSeenTs = 0;
+  let visibleCount = 0;
   for (const node of messageNodes) {
     const el = /** @type {HTMLElement} */ (node);
     const senderId = el.dataset.senderId;
@@ -596,17 +603,22 @@ function handleScroll(container) {
       continue;
     }
     const bottom = el.offsetTop + el.offsetHeight;
-    if (bottom <= visibleBottom + 4) {
+    const isVisible = bottom <= visibleBottom + 4;
+    if (isVisible) {
+      visibleCount++;
       const ts = Number(el.dataset.timestamp || 0);
       if (ts > maxSeenTs) maxSeenTs = ts;
     }
   }
+  
+  console.log('[handleScroll] Visible messages', { visibleCount, maxSeenTs });
 
   if (maxSeenTs > 0) {
     markReadUpTo(sessionId, maxSeenTs);
   }
 
   if (isAtBottom(container)) {
+    console.log('[handleScroll] At bottom, marking all as read');
     markAllRead(sessionId);
   }
 
