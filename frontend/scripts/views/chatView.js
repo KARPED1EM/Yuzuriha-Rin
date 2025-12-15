@@ -155,7 +155,7 @@ export function renderChatSession(sessionId, opts = {}) {
   let blockTimestamp = null;
 
   // First pass: find if there's any blocked message
-  for (const msg of effective) {
+  for (const msg of messages) {
     if (msg.type === "system-blocked") {
       isBlocked = true;
       blockTimestamp = msg.timestamp;
