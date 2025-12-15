@@ -1,5 +1,5 @@
 import random
-from src.core.models.behavior_config import EmotionState
+from src.core.models.behavior import EmotionState
 
 
 class PausePredictor:

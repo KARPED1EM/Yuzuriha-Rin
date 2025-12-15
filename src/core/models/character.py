@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
-from src.core.models.behavior_config import BehaviorConfig
+from src.core.models.behavior import BehaviorConfig
 
 
 class Character(BaseModel):

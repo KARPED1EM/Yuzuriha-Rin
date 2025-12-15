@@ -321,9 +321,9 @@ class StickerWidget(QFrame):
         except ValueError:
             return str(self.image_path).replace("\\", "/")
 
-    def load_image_alter_data(self) -> dict:
+    def load_image_descriptions_data(self) -> dict:
         """加载 image_descriptions.json"""
-        json_path = self.sticker_base.parent / "config" / "image_descriptions.json"
+        json_path = self.sticker_base.parent / "configs" / "image_descriptions.json"
         if not json_path.exists():
             return {}
         try:
@@ -332,9 +332,9 @@ class StickerWidget(QFrame):
         except Exception:
             return {}
 
-    def save_image_alter_data(self, data: dict) -> bool:
+    def save_image_descriptions_data(self, data: dict) -> bool:
         """保存 image_descriptions.json，返回是否成功"""
-        json_path = self.sticker_base.parent / "config" / "image_descriptions.json"
+        json_path = self.sticker_base.parent / "configs" / "image_descriptions.json"
         try:
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -345,7 +345,7 @@ class StickerWidget(QFrame):
 
     def get_current_description(self) -> str:
         """获取当前图片的描述"""
-        data = self.load_image_alter_data()
+        data = self.load_image_descriptions_data()
         relative_path = self.get_relative_path()
         return data.get(relative_path, "")
 
@@ -497,7 +497,7 @@ class StickerWidget(QFrame):
         
         if ok:
             # 保存描述
-            data = self.load_image_alter_data()
+            data = self.load_image_descriptions_data()
             relative_path = self.get_relative_path()
             
             if text.strip():
@@ -506,7 +506,7 @@ class StickerWidget(QFrame):
                 # 如果描述为空，删除该条目
                 data.pop(relative_path, None)
             
-            self.save_image_alter_data(data)
+            self.save_image_descriptions_data(data)
             self.update_border_color()
             self.description_updated.emit()
 

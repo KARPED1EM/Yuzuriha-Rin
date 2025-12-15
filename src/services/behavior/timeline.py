@@ -1,6 +1,6 @@
 import random
 from typing import List
-from src.core.models.behavior_config import PlaybackAction
+from src.core.models.behavior import PlaybackAction
 from src.core.models.character import Character
 
 
