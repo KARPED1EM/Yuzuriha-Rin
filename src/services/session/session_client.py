@@ -9,14 +9,19 @@ from src.core.models.behavior import PlaybackAction
 from src.services.messaging.message_service import MessageService
 from src.core.models.message import Message, MessageType
 from src.core.models.character import Character
+from src.core.models.constants import DEFAULT_USER_AVATAR
 from src.infrastructure.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
     LogCategory,
 )
 from src.utils.image_alter import image_alter
+from src.services.tools.tool_service import ToolService
 
 logger = logging.getLogger(__name__)
+
+# Maximum number of tool call iterations to prevent infinite loops
+MAX_TOOL_CALL_ITERATIONS = 5
 
 
 class SessionClient:
@@ -34,6 +39,7 @@ class SessionClient:
         self.user_id = "assistant"
 
         self.coordinator = BehaviorCoordinator(character)
+        self.tool_service = ToolService(message_service)
         self._running = False
         self._tasks = []
         self.session_id = None
@@ -76,37 +82,179 @@ class SessionClient:
             return
 
         try:
-            history = await self.message_service.get_messages(user_message.session_id)
-
-            conversation_history = self._build_llm_history(history)
-
-            llm_response = await self.llm_client.chat(conversation_history)
-
-            # Handle invalid JSON or empty content - skip processing entirely
-            if llm_response.is_invalid_json or llm_response.is_empty_content:
-                reason = "invalid_json" if llm_response.is_invalid_json else "empty_content"
-                message = (
-                    "LLM 返回了非法 JSON，本次不处理"
-                    if llm_response.is_invalid_json
-                    else "LLM 返回了空内容，本次不处理"
-                )
+            # Loop until LLM returns without tool calls
+            iteration = 0
+            reached_max_iterations = False
+            
+            while iteration < MAX_TOOL_CALL_ITERATIONS:
+                iteration += 1
                 
+                history = await self.message_service.get_messages(user_message.session_id)
+                conversation_history = self._build_llm_history(history)
+                llm_response = await self.llm_client.chat(conversation_history)
+
+                # Handle invalid JSON or empty content - skip processing entirely
+                if llm_response.is_invalid_json or llm_response.is_empty_content:
+                    reason = "invalid_json" if llm_response.is_invalid_json else "empty_content"
+                    message = (
+                        "LLM 返回了非法 JSON，本次不处理"
+                        if llm_response.is_invalid_json
+                        else "LLM 返回了空内容，本次不处理"
+                    )
+                    
+                    log_entry = unified_logger.warning(
+                        f"Skipping LLM response: {reason}",
+                        category=LogCategory.LLM,
+                        metadata={
+                            "session_id": user_message.session_id,
+                            "reason": reason,
+                            "raw_text_preview": llm_response.raw_text[:200] if llm_response.raw_text else "",
+                        },
+                    )
+                    await broadcast_log_if_needed(log_entry)
+                    
+                    # Send toast notification to frontend
+                    await self.ws_manager.send_toast(
+                        user_message.session_id,
+                        message,
+                        level="warning",
+                    )
+                    return
+
+                # Check if LLM wants to use tools
+                if llm_response.tool_calls:
+                    log_entry = unified_logger.info(
+                        f"LLM requested {len(llm_response.tool_calls)} tool calls (iteration {iteration})",
+                        category=LogCategory.LLM,
+                        metadata={"tool_calls": llm_response.tool_calls},
+                    )
+                    await broadcast_log_if_needed(log_entry)
+
+                    # Execute all tool calls and collect results
+                    tool_results = []
+                    should_terminate = False  # Flag to exit loop after blocking
+                    
+                    for tool_call in llm_response.tool_calls:
+                        if not isinstance(tool_call, dict):
+                            continue
+                        
+                        tool_name = tool_call.get("name", "")
+                        if not tool_name:
+                            log_entry = unified_logger.warning(
+                                "Tool call missing 'name' field, skipping",
+                                category=LogCategory.LLM,
+                                metadata={"tool_call": tool_call},
+                            )
+                            await broadcast_log_if_needed(log_entry)
+                            continue
+                        
+                        tool_args = tool_call.get("arguments", {})
+                        
+                        if not isinstance(tool_args, dict):
+                            tool_args = {}
+                        
+                        try:
+                            # Execute the tool
+                            result = await self.tool_service.execute_tool(
+                                tool_name=tool_name,
+                                tool_args=tool_args,
+                                session_id=user_message.session_id,
+                                character_avatar=self.character.avatar,
+                                user_avatar=DEFAULT_USER_AVATAR,
+                            )
+                            
+                            log_entry = unified_logger.info(
+                                f"Tool {tool_name} executed",
+                                category=LogCategory.LLM,
+                                metadata={"tool_name": tool_name, "result": result},
+                            )
+                            await broadcast_log_if_needed(log_entry)
+                            
+                            tool_results.append({
+                                "tool_name": tool_name,
+                                "result": result
+                            })
+                            
+                            # Handle special side effects (blocking, recalling)
+                            if tool_name == "block_user" and result.get("success"):
+                                # Broadcast the blocked message
+                                messages = await self.message_service.get_messages(user_message.session_id)
+                                for msg in reversed(messages):
+                                    if msg.type == MessageType.SYSTEM_BLOCKED:
+                                        await self._broadcast_message(msg)
+                                        break
+                                
+                                # Set flag to terminate loop after blocking
+                                should_terminate = True
+                                log_entry = unified_logger.info(
+                                    "User blocked, terminating tool call loop",
+                                    category=LogCategory.LLM,
+                                    metadata={"session_id": user_message.session_id},
+                                )
+                                await broadcast_log_if_needed(log_entry)
+                            
+                            if tool_name == "recall_message_by_id" and result.get("success"):
+                                # Broadcast the recall message
+                                recall_msg_id = result.get("recall_system_message_id")
+                                if recall_msg_id:
+                                    recall_msg = await self.message_service.get_message(recall_msg_id)
+                                    if recall_msg:
+                                        await self._broadcast_message(recall_msg)
+                        
+                        except Exception as e:
+                            log_entry = unified_logger.error(
+                                f"Error executing tool {tool_name}: {e}",
+                                category=LogCategory.LLM,
+                                metadata={"exc_info": True},
+                            )
+                            await broadcast_log_if_needed(log_entry)
+                            tool_results.append({
+                                "tool_name": tool_name,
+                                "result": {"error": str(e)}
+                            })
+
+                    # Store tool results as SYSTEM_TOOL message (DB only, no broadcast)
+                    if tool_results:
+                        await self.message_service.send_message(
+                            session_id=user_message.session_id,
+                            sender_id="system",
+                            message_type=MessageType.SYSTEM_TOOL,
+                            content="",
+                            metadata={"tool_results": tool_results},
+                        )
+                    
+                    # If block_user was called, terminate immediately
+                    if should_terminate:
+                        log_entry = unified_logger.info(
+                            "Processing terminated due to block_user call",
+                            category=LogCategory.LLM,
+                            metadata={"session_id": user_message.session_id},
+                        )
+                        await broadcast_log_if_needed(log_entry)
+                        return
+                    
+                    # Continue loop to call LLM again with tool results in history
+                    continue
+                
+                # No tool calls - process the response normally
+                break
+            else:
+                # Loop exited due to reaching max iterations (not via break)
+                reached_max_iterations = True
+            
+            if reached_max_iterations:
                 log_entry = unified_logger.warning(
-                    f"Skipping LLM response: {reason}",
+                    f"Max tool call iterations reached ({MAX_TOOL_CALL_ITERATIONS})",
                     category=LogCategory.LLM,
-                    metadata={
-                        "session_id": user_message.session_id,
-                        "reason": reason,
-                        "raw_text_preview": llm_response.raw_text[:200] if llm_response.raw_text else "",
-                    },
+                    metadata={"session_id": user_message.session_id},
                 )
                 await broadcast_log_if_needed(log_entry)
                 
-                # Send toast notification to frontend
+                # Notify user via toast
                 await self.ws_manager.send_toast(
                     user_message.session_id,
-                    message,
-                    level="warning",
+                    f"工具调用次数过多（超过{MAX_TOOL_CALL_ITERATIONS}次），请求已终止。",
+                    level="error",
                 )
                 return
 
@@ -474,6 +622,22 @@ class SessionClient:
             meta = msg.metadata or {}
             parts = [f"{k}={v}" for k, v in meta.items()]
             return "Emotion state: " + (", ".join(parts) if parts else "neutral")
+        if msg.type == MessageType.SYSTEM_BLOCKED:
+            return "系统提示：你已拉黑对方。"
+        if msg.type == MessageType.SYSTEM_TOOL:
+            # Format tool results for LLM
+            tool_results = msg.metadata.get("tool_results", [])
+            if not tool_results:
+                return ""
+            
+            result_lines = []
+            for tr in tool_results:
+                tool_name = tr.get("tool_name", "unknown")
+                result = tr.get("result", {})
+                result_str = str(result)
+                result_lines.append(f"Tool '{tool_name}' returned: {result_str}")
+            
+            return "工具调用结果：\n" + "\n".join(result_lines)
         # Fallback for other system messages.
         return msg.content or ""
 

@@ -778,6 +778,36 @@ textarea {
     display: block;
 }
 
+/* Blocked message indicator */
+.blocked-indicator {
+    position: absolute;
+    right: calc(100% + 8px);  /* Position to the left of the bubble with spacing */
+    bottom: 8px;
+    width: 18px;
+    height: 18px;
+    background: #ff5252;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    z-index: 1;
+}
+
+.message.message-blocked .message-bubble {
+    position: relative;
+    /* Reduce max-width slightly to ensure space for the indicator */
+    max-width: calc(100% - 85px);
+}
+
+.message.message-user.message-blocked .message-bubble {
+    /* User messages already aligned right, no special handling needed */
+    max-width: calc(100% - 85px);
+}
+
 .wechat-input {
     background: #f7f7f7;
     border-top: 1px solid #c9c9c9;
