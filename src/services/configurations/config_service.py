@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, Optional
 from src.core.interfaces.repositories import IConfigRepository
-from src.core.config import llm_defaults, ui_defaults, app_config
+from src.core.configs import llm_defaults, ui_defaults, app_config
 
 logger = logging.getLogger(__name__)
 

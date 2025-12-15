@@ -2,7 +2,7 @@ from typing import List
 import uuid
 import random
 
-from src.core.models.behavior import (
+from src.core.models.behavior_config import (
     EmotionState,
     PlaybackAction,
     EMOTION_TYPO_MULTIPLIERS,

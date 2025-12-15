@@ -72,9 +72,9 @@ class LLMStructuredResponse:
             self.tool_calls = []
 
 
-class LLMClient:
+class LLMService:
     """
-    Protocol-based LLM client. Backend is no longer sensitive to specific service
+    Protocol-based LLM service. Backend is no longer sensitive to specific service
     providers; it only provides differentiated support based on Protocol.
     
     Supported protocols:

@@ -1,12 +1,12 @@
 """Test character configuration update functionality"""
 from unittest.mock import Mock
-from src.services.session.session_client import SessionClient
+from src.services.session.session_service import SessionService
 from src.core.models.character import Character
 from src.api.schemas import LLMConfig
 
 
 def test_session_client_update_character():
-    """Test that SessionClient.update_character updates the character and coordinator"""
+    """Test that SessionService.update_character updates the character and coordinator"""
     # Create initial character
     initial_character = Character(
         id="test_char_1",
@@ -29,8 +29,8 @@ def test_session_client_update_character():
         user_nickname=None,
     )
     
-    # Create SessionClient
-    session_client = SessionClient(
+    # Create SessionService
+    session_client = SessionService(
         message_service=message_service,
         ws_manager=ws_manager,
         llm_config=llm_config,

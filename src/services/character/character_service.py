@@ -6,7 +6,7 @@ from src.core.models.session import Session
 from src.core.interfaces.repositories import ICharacterRepository
 from src.core.interfaces.repositories import ISessionRepository
 from src.services.messaging.message_service import MessageService
-from src.services.config.config_service import ConfigService
+from src.services.configurations.config_service import ConfigService
 
 logger = logging.getLogger(__name__)
 

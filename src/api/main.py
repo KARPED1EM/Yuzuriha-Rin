@@ -10,7 +10,7 @@ from src.core.utils.logger import (
     configure_unified_logging,
     get_uvicorn_log_config,
 )
-from src.core.config import app_config, websocket_config
+from src.core.configs import app_config, websocket_config
 
 logger = logging.getLogger(__name__)
 

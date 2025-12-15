@@ -11,10 +11,10 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 def verify_update_character_method():
-    """Verify the update_character method exists in SessionClient"""
+    """Verify the update_character method exists in SessionService"""
     print("Verifying update_character method...")
     
-    # Read the SessionClient file content
+    # Read the SessionService file content
     session_client_path = os.path.join(
         os.path.dirname(__file__), 
         "..", 
@@ -53,7 +53,7 @@ def verify_update_character_method():
 
 
 def verify_routes_update():
-    """Verify that routes.py calls update_character on SessionClient instances"""
+    """Verify that routes.py calls update_character on SessionService instances"""
     print("\nVerifying routes.py updates...")
     
     routes_path = os.path.join(
@@ -69,9 +69,9 @@ def verify_routes_update():
     
     # Check for calling update_character
     if "session_client.update_character(character)" in content:
-        print("✓ SessionClient.update_character() call found")
+        print("✓ SessionService.update_character() call found")
     else:
-        print("✗ SessionClient.update_character() call not found")
+        print("✗ SessionService.update_character() call not found")
         return False
     
     # Check for updated notification message

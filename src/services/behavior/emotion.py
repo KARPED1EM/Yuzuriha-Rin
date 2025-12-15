@@ -1,5 +1,5 @@
 from typing import Dict
-from src.core.models.behavior import EmotionState
+from src.core.models.behavior_config import EmotionState
 
 
 class EmotionFetcher:

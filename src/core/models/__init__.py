@@ -1,7 +1,7 @@
 from src.core.models.message import Message, MessageType, TypingState, WSMessage
 from src.core.models.character import Character
 from src.core.models.session import Session
-from src.core.models.behavior import (
+from src.core.models.behavior_config import (
     EmotionState,
     MessageSegment,
     PlaybackAction,

@@ -10,14 +10,14 @@ from src.infrastructure.database.repositories import (
 )
 from src.services.messaging.message_service import MessageService
 from src.services.character.character_service import CharacterService
-from src.services.config.config_service import ConfigService
+from src.services.configurations.config_service import ConfigService
 from src.infrastructure.network.websocket_manager import WebSocketManager
 from src.core.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
     LogCategory,
 )
-from src.core.config import database_config
+from src.core.configs import database_config
 
 router = APIRouter()
 

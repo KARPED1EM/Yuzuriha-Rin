@@ -11,7 +11,7 @@ from src.infrastructure.database.repositories import (
 from src.services.messaging.message_service import MessageService
 from src.services.character.character_service import CharacterService
 from src.services.config.config_service import ConfigService
-from src.services.session.session_client import SessionClient
+from src.services.session.session_service import SessionClient
 from src.infrastructure.network.websocket_manager import WebSocketManager
 from src.core.models.message import MessageType
 from src.core.schemas import LLMConfig
@@ -20,7 +20,7 @@ from src.core.utils.logger import (
     broadcast_log_if_needed,
     LogCategory,
 )
-from src.core.config import database_config, llm_defaults
+from src.core.configs import database_config, llm_defaults
 from src.core.models.constants import DEFAULT_USER_ID
 from src.utils.url_utils import sanitize_base_url
 
