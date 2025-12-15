@@ -4,6 +4,7 @@ import { state, setReadTimestamp, saveStateToStorage } from "../core/state.js";
 import { applyEmotionTheme, clearEmotionTheme } from "../ui/emotionTheme.js";
 import { formatChatTimestamp } from "../utils/time.js";
 import { attachZoomToContainer } from "../ui/imageZoom.js";
+import { showToast } from "../ui/toast.js";
 
 /** @type {import("../core/ws.js").WsClient | null} */
 let wsClient = null;
@@ -470,43 +471,63 @@ function getCharacterAvatar(sessionId) {
   return avatar || DEFAULT_CHARACTER_AVATAR;
 }
 
+let inputHandlersSetup = false;
+
 function setupInputHandlers() {
   const input = /** @type {HTMLTextAreaElement | null} */ (
     document.getElementById("userInput")
   );
   const sendBtn = document.getElementById("toggleBtn");
-  if (!input || !sendBtn || !wsClient) return;
+  if (!input || !sendBtn) return;
 
   input.disabled = false;
 
-  input.oninput = () => {
-    adjustTextareaHeight(input);
-    if (input.value.trim()) {
-      sendBtn.classList.remove("hidden");
-      sendBtn.disabled = false;
-    } else {
-      sendBtn.classList.add("hidden");
-      sendBtn.disabled = true;
-    }
-  };
+  // Only set up event listeners once to avoid duplicates
+  if (!inputHandlersSetup) {
+    input.oninput = () => {
+      adjustTextareaHeight(input);
+      if (input.value.trim()) {
+        sendBtn.classList.remove("hidden");
+        sendBtn.disabled = false;
+      } else {
+        sendBtn.classList.add("hidden");
+        sendBtn.disabled = true;
+      }
+    };
 
-  input.onkeydown = (ev) => {
-    if (ev.key === "Enter" && !ev.shiftKey) {
-      ev.preventDefault();
-      sendCurrentText();
-    }
-  };
+    input.onkeydown = (ev) => {
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        sendCurrentText();
+      }
+    };
 
-  sendBtn.onclick = () => sendCurrentText();
+    sendBtn.onclick = () => sendCurrentText();
+    inputHandlersSetup = true;
+  }
 }
 
 function sendCurrentText() {
   const input = /** @type {HTMLTextAreaElement | null} */ (
     document.getElementById("userInput")
   );
-  if (!input || !wsClient) return;
+  if (!input) return;
+  
   const content = input.value.trim();
   if (!content) return;
+  
+  // Check if wsClient exists and is ready
+  if (!wsClient) {
+    showToast("连接未建立，请稍后重试", "error");
+    return;
+  }
+  
+  // Check if WebSocket is open
+  if (!wsClient.ws || wsClient.ws.readyState !== WebSocket.OPEN) {
+    showToast("正在连接，请稍后重试", "info");
+    return;
+  }
+  
   wsClient.sendText(content);
   input.value = "";
   adjustTextareaHeight(input);
