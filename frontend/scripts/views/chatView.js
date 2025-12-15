@@ -239,16 +239,19 @@ export function renderChatSession(sessionId, opts = {}) {
     if (opts.scrollOnEnter) {
       scrollToBottom(container);
       markAllRead(sessionId);
+      updateNewMessageIndicator(sessionId, container);
     } else if (wasAtBottom) {
       scrollToBottom(container);
       markAllRead(sessionId);
+      updateNewMessageIndicator(sessionId, container);
     } else {
       const newHeight = container.scrollHeight;
       const delta = newHeight - prevScrollHeight;
       container.scrollTop = prevScrollTop + Math.max(0, delta);
+      // After adjusting scroll position, check what's visible and mark as read
+      // handleScroll already calls updateNewMessageIndicator
+      handleScroll(container);
     }
-
-    updateNewMessageIndicator(sessionId, container);
   }
 
   // Attach zoom to image messages only
