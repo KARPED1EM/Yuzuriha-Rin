@@ -471,8 +471,6 @@ function getCharacterAvatar(sessionId) {
   return avatar || DEFAULT_CHARACTER_AVATAR;
 }
 
-let inputHandlersSetup = false;
-
 function setupInputHandlers() {
   const input = /** @type {HTMLTextAreaElement | null} */ (
     document.getElementById("userInput")
@@ -482,29 +480,31 @@ function setupInputHandlers() {
 
   input.disabled = false;
 
-  // Only set up event listeners once to avoid duplicates
-  if (!inputHandlersSetup) {
-    input.oninput = () => {
-      adjustTextareaHeight(input);
-      if (input.value.trim()) {
-        sendBtn.classList.remove("hidden");
-        sendBtn.disabled = false;
-      } else {
-        sendBtn.classList.add("hidden");
-        sendBtn.disabled = true;
-      }
-    };
+  // Check if handlers are already attached by checking for our custom property
+  if (input.dataset.handlersAttached === "true") return;
 
-    input.onkeydown = (ev) => {
-      if (ev.key === "Enter" && !ev.shiftKey) {
-        ev.preventDefault();
-        sendCurrentText();
-      }
-    };
+  input.oninput = () => {
+    adjustTextareaHeight(input);
+    if (input.value.trim()) {
+      sendBtn.classList.remove("hidden");
+      sendBtn.disabled = false;
+    } else {
+      sendBtn.classList.add("hidden");
+      sendBtn.disabled = true;
+    }
+  };
 
-    sendBtn.onclick = () => sendCurrentText();
-    inputHandlersSetup = true;
-  }
+  input.onkeydown = (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey) {
+      ev.preventDefault();
+      sendCurrentText();
+    }
+  };
+
+  sendBtn.onclick = () => sendCurrentText();
+  
+  // Mark that handlers have been attached
+  input.dataset.handlersAttached = "true";
 }
 
 function sendCurrentText() {
