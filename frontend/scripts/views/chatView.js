@@ -249,11 +249,7 @@ export function renderChatSession(sessionId, opts = {}) {
       // After render completes, check what's visible and mark as read
       // Use requestAnimationFrame to ensure DOM layout is updated before checking scroll position
       // handleScroll already calls updateNewMessageIndicator
-      console.log('[renderChatSession] User scrolled up, scheduling handleScroll');
-      requestAnimationFrame(() => {
-        console.log('[renderChatSession] requestAnimationFrame callback executing');
-        handleScroll(container);
-      });
+      requestAnimationFrame(() => handleScroll(container));
     }
   }
 
@@ -591,10 +587,7 @@ function handleScroll(container) {
   const messageNodes = Array.from(
     container.querySelectorAll(".message[data-timestamp]"),
   );
-  console.log('[handleScroll] Start', { sessionId, visibleBottom, totalMessages: messageNodes.length });
-  
   let maxSeenTs = 0;
-  let visibleCount = 0;
   for (const node of messageNodes) {
     const el = /** @type {HTMLElement} */ (node);
     const senderId = el.dataset.senderId;
@@ -603,22 +596,17 @@ function handleScroll(container) {
       continue;
     }
     const bottom = el.offsetTop + el.offsetHeight;
-    const isVisible = bottom <= visibleBottom + 4;
-    if (isVisible) {
-      visibleCount++;
+    if (bottom <= visibleBottom + 4) {
       const ts = Number(el.dataset.timestamp || 0);
       if (ts > maxSeenTs) maxSeenTs = ts;
     }
   }
-  
-  console.log('[handleScroll] Visible messages', { visibleCount, maxSeenTs });
 
   if (maxSeenTs > 0) {
     markReadUpTo(sessionId, maxSeenTs);
   }
 
   if (isAtBottom(container)) {
-    console.log('[handleScroll] At bottom, marking all as read');
     markAllRead(sessionId);
   }
 
@@ -655,16 +643,13 @@ function updateNewMessageIndicator(sessionId, container) {
   const text = document.getElementById("newMessageText");
   if (!btn || !text) return;
 
-  const atBottom = isAtBottom(container);
-  console.log('[updateNewMessageIndicator]', { sessionId, unread, atBottom, scrollTop: container.scrollTop, scrollHeight: container.scrollHeight, clientHeight: container.clientHeight });
-
-  if (unread > 0 && !atBottom) {
+  if (unread > 0 && !isAtBottom(container)) {
     btn.classList.remove("hidden");
+    btn.classList.add("show");
     text.textContent = `${unread} 条新消息`;
-    console.log('[updateNewMessageIndicator] Showing indicator');
   } else {
+    btn.classList.remove("show");
     btn.classList.add("hidden");
-    console.log('[updateNewMessageIndicator] Hiding indicator', { reason: unread === 0 ? 'no unread' : 'at bottom' });
   }
 }
 
@@ -678,7 +663,6 @@ function getUnreadCount(sessionId) {
     if (msg.type === "system-emotion" || msg.type === "system-typing") continue;
     if (msg.timestamp > lastRead) count += 1;
   }
-  console.log('[getUnreadCount]', { sessionId, lastRead, totalMsgs: msgs.length, unreadCount: count });
   return count;
 }
 

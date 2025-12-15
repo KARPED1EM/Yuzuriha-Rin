@@ -30,7 +30,10 @@ export function showSessionListView() {
   
   // Hide new message indicator when in session list view
   const newMsgBtn = document.getElementById("newMessageBtn");
-  if (newMsgBtn) newMsgBtn.classList.add("hidden");
+  if (newMsgBtn) {
+    newMsgBtn.classList.remove("show");
+    newMsgBtn.classList.add("hidden");
+  }
 }
 
 export function renderSessionListView() {
