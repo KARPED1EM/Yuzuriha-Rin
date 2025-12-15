@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutting down...")
     try:
         # Import here to avoid circular dependencies
-        from src.api.ws_routes import cleanup_resources
+        from src.api.websocket_session import cleanup_resources
         await cleanup_resources()
         logger.info("Application shutdown complete")
     except Exception as e:
@@ -47,9 +47,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from src.api.ws_routes import router as ws_router
-from src.api.ws_global_routes import router as ws_global_router
-from src.api.routes import router as api_router
+from src.api.websocket_session import router as ws_router
+from src.api.websocket_global import router as ws_global_router
+from src.api.http_routes import router as api_router
 
 app.include_router(ws_router, prefix="/api")
 app.include_router(ws_global_router, prefix="/api")
