@@ -20,11 +20,12 @@
   <br/><br/>
 
   <h1>🍀 使用说明 🍀</h1>
-  <p>项目仅供 ITHM NLP Project Group 9 学习，暂不接受外部贡献。</p>
-  <p>模型文件不会随仓库分发，请先运行仓库内的训练脚本生成模型，再启动主程序。</p>
+  <p>项目用于学习，暂不接受外部贡献</p>
+  <p>架构介绍 & 技术细节 请参考 <a href="TECHNICAL_OVERVIEW.md">TECHNICAL_OVERVIEW.md</a></p>
+  <p>模型文件不会随仓库分发，请先运行仓库内的训练脚本生成模型，再启动主程序</p>
 
   <br/><br/>
 
   <h1>📄 许可协议 📄</h1>
-  <p>基于 <a href="LICENSE">MIT License</a> 发布。</p>
+  <p>基于 <a href="LICENSE">MIT License</a> 发布</p>
 </div>

@@ -20,12 +20,13 @@
   <br/><br/>
 
   <h1>🍀 𝑼𝒔𝒂𝒈𝒆 🍀</h1>
-  <p>For ITHM NLP Project Group 9 study use only; external contributions are currently paused.</p>
-  <p>Model weights are excluded from the repo&mdash;run the bundled training scripts to generate them before launching the main program.</p>
+  <p>For study only; external contributions are currently paused</p>
+  <p>Architecture introduction & technical details: please refer to <a href="TECHNICAL_OVERVIEW.md">TECHNICAL_OVERVIEW.md</a></p>
+  <p>Model weights are excluded from the repo; run the bundled training scripts to generate them before launching the main program</p>
 
   <br/><br/>
 
   <h1>📄 𝑳𝒊𝒄𝒆𝒏𝒔𝒆 📄</h1>
-  <p>Released under the <a href="LICENSE">MIT License</a>.</p>
+  <p>Released under the <a href="LICENSE">MIT License</a></p>
 
 </div>
