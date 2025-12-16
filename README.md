@@ -19,7 +19,7 @@
 
   <br/><br/>
 
-  <h1>⚠️ 𝑼𝒔𝒂𝒈𝒆 ⚠️</h1>
+  <h1>🍀 𝑼𝒔𝒂𝒈𝒆 🍀</h1>
   <p>For ITHM NLP Project Group 9 study use only; external contributions are currently paused.</p>
   <p>Model weights are excluded from the repo&mdash;run the bundled training scripts to generate them before launching the main program.</p>
 
