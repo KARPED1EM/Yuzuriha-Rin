@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigRepository(BaseRepository[Dict], IConfigRepository):
+    async def get(self, key: str) -> Optional[str]:
+        return await self.get_config(key)
+    
+    async def set(self, key: str, value: str) -> bool:
+        return await self.set_config(key, value)
+    
     async def get_by_id(self, id: str) -> Optional[Dict]:
         return await self.get_config(id)
 

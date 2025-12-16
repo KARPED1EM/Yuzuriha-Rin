@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, List, get_args, get_origin
 from pydantic_core import PydanticUndefined
 from src.infrastructure.database.connection import DatabaseConnection
 from src.services.character.character_service import CharacterService
-from src.services.config.config_service import ConfigService
+from src.services.configurations.config_service import ConfigService
 from src.services.messaging.message_service import MessageService
 from src.infrastructure.database.repositories import (
     MessageRepository,
@@ -44,23 +44,33 @@ async def initialize_services():
     global db_connection, character_service, config_service, message_service, session_repo
 
     if db_connection is None:
-        db_connection = DatabaseConnection(database_config.path)
+        try:
+            db_connection = DatabaseConnection(database_config.path)
 
-        # Create repositories
-        message_repo = MessageRepository(db_connection)
-        character_repo = CharacterRepository(db_connection)
-        session_repo = SessionRepository(db_connection)
-        config_repo = ConfigRepository(db_connection)
+            # Create repositories
+            message_repo = MessageRepository(db_connection)
+            character_repo = CharacterRepository(db_connection)
+            session_repo = SessionRepository(db_connection)
+            config_repo = ConfigRepository(db_connection)
 
-        # Create services
-        message_service = MessageService(message_repo)
-        config_service = ConfigService(config_repo)
-        character_service = CharacterService(
-            character_repo, session_repo, message_service, config_service
-        )
+            # Create services
+            message_service = MessageService(message_repo)
+            config_service = ConfigService(config_repo)
+            character_service = CharacterService(
+                character_repo, session_repo, message_service, config_service
+            )
 
-        await character_service.initialize_builtin_characters()
-        logger.info("REST API services initialized")
+            await character_service.initialize_builtin_characters()
+            logger.info("REST API services initialized")
+        except Exception as e:
+            logger.error(f"Error initializing services: {e}", exc_info=True)
+            # Reset to None to force retry
+            db_connection = None
+            character_service = None
+            config_service = None
+            message_service = None
+            session_repo = None
+            raise
 
 
 class CharacterCreate(BaseModel):
@@ -272,13 +282,13 @@ async def update_character(character_id: str, data: CharacterUpdate):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update character")
 
-    # Update character configuration in active SessionClient instances
+    # Update character configuration in active SessionService instances
     from src.api import ws_routes
     updated_sessions = []
     for session_id, session_client in list(ws_routes.session_clients.items()):
         if hasattr(session_client, 'character') and session_client.character.id == character_id:
             try:
-                # Update the character configuration in the SessionClient
+                # Update the character configuration in the SessionService
                 session_client.update_character(character)
                 # Send notification to frontend that config is updated
                 if ws_routes.ws_manager:
