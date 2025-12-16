@@ -267,3 +267,23 @@ class Character(BaseModel):
     @property
     def sticker_confidence_threshold_negative(self) -> float:
         return self.behavior.sticker.confidence_threshold_negative
+    
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """
+        Override model_dump to include flattened behavior fields for backward compatibility.
+        
+        This ensures the frontend receives both the nested 'behavior' structure and
+        flattened fields (e.g., timeline_hesitation_probability) that it expects.
+        """
+        # Get base model dump
+        data = super().model_dump(**kwargs)
+        
+        # Add flattened fields from behavior modules
+        if 'behavior' in data and isinstance(data['behavior'], dict):
+            for module_name, module_data in data['behavior'].items():
+                if isinstance(module_data, dict):
+                    for field_name, field_value in module_data.items():
+                        flat_key = f"{module_name}_{field_name}"
+                        data[flat_key] = field_value
+        
+        return data
