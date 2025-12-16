@@ -276,6 +276,9 @@ async def update_character(character_id: str, data: CharacterUpdate):
         character.avatar = _validate_avatar_value(data.avatar, allow_local=True)
     if data.persona is not None:
         character.persona = data.persona or ""
+    # Fields that should not be updated via behavior_params
+    PROTECTED_CHARACTER_FIELDS = {"behavior", "id", "name", "avatar", "persona", "is_builtin", "created_at", "updated_at"}
+    
     if data.sticker_packs is not None:
         character.sticker_packs = _normalize_string_list(data.sticker_packs)
     if data.behavior_params:
@@ -296,12 +299,11 @@ async def update_character(character_id: str, data: CharacterUpdate):
                         else:
                             logger.warning(f"Unknown behavior field: {module_name}.{field_name}")
                 # Handle top-level fields like sticker_packs (already handled above, but kept for completeness)
-                elif hasattr(character, key) and key not in {"behavior", "id", "name", "avatar", "persona", "is_builtin", "created_at", "updated_at"}:
+                elif hasattr(character, key) and key not in PROTECTED_CHARACTER_FIELDS:
                     setattr(character, key, value)
             except (ValueError, TypeError) as e:
                 # Log validation errors but continue processing other fields
                 logger.warning(f"Invalid value for {key}: {e}")
-                continue
 
     success = await character_service.update_character(character)
     if not success:

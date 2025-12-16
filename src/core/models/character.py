@@ -82,10 +82,14 @@ class Character(BaseModel):
         for module_name, module_fields in modules.items():
             if module_name not in behavior_dict:
                 behavior_dict[module_name] = {}
+                behavior_dict[module_name].update(module_fields)
             elif isinstance(behavior_dict[module_name], dict):
                 # Merge new fields with existing dict
                 behavior_dict[module_name].update(module_fields)
-            # If module is already an instantiated object, keep it as-is
+            else:
+                # Module is an instantiated object - create a new dict with merged values
+                # This shouldn't happen in normal flow but handle it gracefully
+                behavior_dict[module_name] = {**module_fields}
         
         # Add behavior dict to remaining data
         if behavior_dict or modules:
