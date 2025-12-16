@@ -655,7 +655,6 @@ function setupTagInput(container, initialTags, readonly, availableOptions = []) 
   if (availableOptions && availableOptions.length > 0 && !readonly) {
     dropdown = document.createElement("div");
     dropdown.className = "tag-input-dropdown hidden";
-    dropdown.style.cssText = "position: absolute; z-index: 1000; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; max-height: 200px; overflow-y: auto; width: 100%;";
   }
 
   function sync() {
@@ -753,15 +752,8 @@ function setupTagInput(container, initialTags, readonly, availableOptions = []) 
       filteredOptions.forEach(opt => {
         const item = document.createElement("div");
         item.textContent = opt;
-        item.style.cssText = "padding: 8px 12px; cursor: pointer; transition: background 0.2s;";
         item.className = "tag-dropdown-item";
         
-        item.addEventListener("mouseenter", () => {
-          item.style.background = "var(--bg-secondary)";
-        });
-        item.addEventListener("mouseleave", () => {
-          item.style.background = "";
-        });
         item.addEventListener("mousedown", (e) => {
           e.preventDefault();
           if (!tags.includes(opt)) {
