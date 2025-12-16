@@ -681,9 +681,16 @@ function isAtBottom(container) {
  * @param {{behavior?: "instant" | "smooth"}} [opts]
  */
 function scrollToBottom(container, opts = {}) {
-  const behavior = opts.behavior === "instant" ? "auto" : "smooth";
+  // Always drive the scroll position using the full scroll range instead of
+  // trying to locate a specific message node.
+  const target = Math.max(container.scrollHeight - container.clientHeight, 0);
+  const behavior = opts.behavior ?? "smooth";
+  if (behavior === "instant") {
+    container.scrollTop = target;
+    return;
+  }
   container.scrollTo({
-    top: container.scrollHeight,
+    top: target,
     behavior,
   });
 }
