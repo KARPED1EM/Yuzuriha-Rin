@@ -3,12 +3,13 @@ import logging
 from typing import List, Optional
 from datetime import datetime
 from src.core.models.character import Character
+from src.core.interfaces.repositories import ICharacterRepository
 from src.infrastructure.database.repositories.base import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class CharacterRepository(BaseRepository[Character]):
+class CharacterRepository(BaseRepository[Character], ICharacterRepository):
     async def get_by_id(self, id: str) -> Optional[Character]:
         try:
             with self.conn_mgr.get_connection() as conn:

@@ -6,11 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from src.infrastructure.network.port_manager import PortManager
-from src.infrastructure.utils.logger import (
+from src.core.utils.logger import (
     configure_unified_logging,
     get_uvicorn_log_config,
 )
-from src.core.config import app_config, websocket_config
+from src.core.configs import app_config, websocket_config
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutting down...")
     try:
         # Import here to avoid circular dependencies
-        from src.api.ws_routes import cleanup_resources
+        from src.api.websocket_session import cleanup_resources
         await cleanup_resources()
         logger.info("Application shutdown complete")
     except Exception as e:
@@ -47,16 +47,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from src.api.ws_routes import router as ws_router
-from src.api.ws_global_routes import router as ws_global_router
-from src.api.routes import router as api_router
+from src.api.websocket_session import router as ws_router
+from src.api.websocket_global import router as ws_global_router
+from src.api.http_routes import router as api_router
 
 app.include_router(ws_router, prefix="/api")
 app.include_router(ws_global_router, prefix="/api")
 app.include_router(api_router, prefix="/api")
 
 frontend_dir = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../frontend")
+    os.path.join(os.path.dirname(__file__), "../frontend")
 )
 if os.path.exists(frontend_dir):
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")

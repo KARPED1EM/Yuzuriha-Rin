@@ -2,15 +2,15 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import List, Any
-from src.services.llm.llm_client import LLMClient
-from src.api.schemas import LLMConfig, ChatMessage
+from src.services.llm.llm_service import LLMService
+from src.core.schemas import LLMConfig, ChatMessage
 from src.services.behavior.coordinator import BehaviorCoordinator
 from src.core.models.behavior import PlaybackAction
 from src.services.messaging.message_service import MessageService
 from src.core.models.message import Message, MessageType
 from src.core.models.character import Character
 from src.core.models.constants import DEFAULT_USER_AVATAR
-from src.infrastructure.utils.logger import (
+from src.core.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
     LogCategory,
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 MAX_TOOL_CALL_ITERATIONS = 5
 
 
-class SessionClient:
+class SessionService:
     def __init__(
         self,
         message_service: MessageService,
@@ -34,7 +34,7 @@ class SessionClient:
     ):
         self.message_service = message_service
         self.ws_manager = ws_manager
-        self.llm_client = LLMClient(llm_config)
+        self.llm_client = LLMService(llm_config)
         self.character = character
         self.user_id = "assistant"
 
@@ -47,7 +47,7 @@ class SessionClient:
     async def start(self, session_id: str):
         self._running = True
         self.session_id = session_id
-        logger.info(f"SessionClient started for session {session_id}")
+        logger.info(f"SessionService started for session {session_id}")
 
     async def stop(self):
         self._running = False
@@ -65,10 +65,10 @@ class SessionClient:
 
         # Close the HTTP client
         await self.llm_client.close()
-        logger.info("SessionClient stopped")
+        logger.info("SessionService stopped")
 
     def update_character(self, character: Character):
-        """Update the character configuration for this SessionClient instance.
+        """Update the character configuration for this SessionService instance.
         
         This updates both the character reference and recreates the coordinator
         with the new character configuration.

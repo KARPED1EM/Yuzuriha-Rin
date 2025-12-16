@@ -1,4 +1,4 @@
-from src.core.config.settings import (
+from src.core.configs.settings import (
     AppConfig,
     CharacterConfig,
     LLMDefaults,

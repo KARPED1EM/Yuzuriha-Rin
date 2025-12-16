@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, List, get_args, get_origin
 from pydantic_core import PydanticUndefined
 from src.infrastructure.database.connection import DatabaseConnection
 from src.services.character.character_service import CharacterService
-from src.services.config.config_service import ConfigService
+from src.services.configurations.config_service import ConfigService
 from src.services.messaging.message_service import MessageService
 from src.infrastructure.database.repositories import (
     MessageRepository,
@@ -16,11 +16,11 @@ from src.infrastructure.database.repositories import (
     SessionRepository,
     ConfigRepository,
 )
-from src.core.config import database_config
+from src.core.configs import database_config
 from src.core.models.constants import DEFAULT_USER_ID
 from src.core.models.character import Character
 from src.utils.url_utils import sanitize_base_url
-from src.infrastructure.utils.logger import (
+from src.core.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
     LogCategory,
@@ -30,7 +30,13 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-STICKER_BASE_DIR = Path(__file__).parent.parent.parent / "data" / "stickers"
+STICKER_BASE_DIR = Path(__file__).parent.parent.parent / "assets" / "stickers"
+
+# Character fields that should not be updated via behavior_params
+PROTECTED_CHARACTER_FIELDS = {
+    "behavior", "id", "name", "avatar", "persona", 
+    "is_builtin", "created_at", "updated_at"
+}
 
 # Service instances
 db_connection: Optional[DatabaseConnection] = None
@@ -40,27 +46,38 @@ message_service: Optional[MessageService] = None
 session_repo: Optional[SessionRepository] = None
 
 
+
 async def initialize_services():
     global db_connection, character_service, config_service, message_service, session_repo
 
     if db_connection is None:
-        db_connection = DatabaseConnection(database_config.path)
+        try:
+            db_connection = DatabaseConnection(database_config.path)
 
-        # Create repositories
-        message_repo = MessageRepository(db_connection)
-        character_repo = CharacterRepository(db_connection)
-        session_repo = SessionRepository(db_connection)
-        config_repo = ConfigRepository(db_connection)
+            # Create repositories
+            message_repo = MessageRepository(db_connection)
+            character_repo = CharacterRepository(db_connection)
+            session_repo = SessionRepository(db_connection)
+            config_repo = ConfigRepository(db_connection)
 
-        # Create services
-        message_service = MessageService(message_repo)
-        config_service = ConfigService(config_repo)
-        character_service = CharacterService(
-            character_repo, session_repo, message_service, config_service
-        )
+            # Create services
+            message_service = MessageService(message_repo)
+            config_service = ConfigService(config_repo)
+            character_service = CharacterService(
+                character_repo, session_repo, message_service, config_service
+            )
 
-        await character_service.initialize_builtin_characters()
-        logger.info("REST API services initialized")
+            await character_service.initialize_builtin_characters()
+            logger.info("REST API services initialized")
+        except Exception as e:
+            logger.error(f"Error initializing services: {e}", exc_info=True)
+            # Reset to None to force retry
+            db_connection = None
+            character_service = None
+            config_service = None
+            message_service = None
+            session_repo = None
+            raise
 
 
 class CharacterCreate(BaseModel):
@@ -170,39 +187,45 @@ async def get_character_behavior_schema():
     """
     Return a machine-readable schema for all character behavior-system fields.
     Frontend uses this to render editable controls without duplicating field lists.
-    Fields are automatically grouped by module prefix (timeline_, segmenter_, typo_, etc.)
+    Fields are automatically grouped by module name from the nested BehaviorConfig structure.
     """
-    exclude = {
-        "id",
-        "name",
-        "avatar",
-        "persona",
-        "is_builtin",
-        "created_at",
-        "updated_at",
-    }
+    from src.core.models.behavior import BehaviorConfig
 
     fields: List[Dict[str, Any]] = []
-    for key, field in Character.model_fields.items():
-        if key in exclude:
-            continue
-
-        type_name = _annotation_to_type_name(field.annotation)
-        default_value = _pydantic_field_default(field)
-
-        # Extract module prefix from field name (e.g., "timeline_hesitation_probability" -> "timeline")
-        # This enables automatic grouping without hardcoding field names
-        group = key.split("_")[0] if "_" in key else "other"
-
-        fields.append(
-            {
-                "key": key,
+    
+    # Handle sticker_packs field separately (not part of nested behavior config)
+    sticker_packs_field = Character.model_fields.get("sticker_packs")
+    if sticker_packs_field:
+        fields.append({
+            "key": "sticker_packs",
+            "type": _annotation_to_type_name(sticker_packs_field.annotation),
+            "default": _pydantic_field_default(sticker_packs_field),
+            "group": "sticker",
+        })
+    
+    # Extract fields from nested BehaviorConfig structure
+    # Note: BehaviorConfig() is lightweight - only creates config objects with defaults
+    behavior_config = BehaviorConfig()
+    for module_name, module_field in BehaviorConfig.model_fields.items():
+        # Get the config class for this module (e.g., TimelineConfig, SegmenterConfig)
+        module_config = getattr(behavior_config, module_name)
+        module_config_class = type(module_config)
+        
+        # Iterate through fields in this module's config
+        for field_name, field_info in module_config_class.model_fields.items():
+            # Construct the flat field key (e.g., "timeline_hesitation_probability")
+            flat_key = f"{module_name}_{field_name}"
+            
+            type_name = _annotation_to_type_name(field_info.annotation)
+            default_value = _pydantic_field_default(field_info)
+            
+            fields.append({
+                "key": flat_key,
                 "type": type_name,
                 "default": default_value,
-                "group": group,
-            }
-        )
-
+                "group": module_name,
+            })
+    
     return {"fields": fields}
 
 
@@ -265,27 +288,48 @@ async def update_character(character_id: str, data: CharacterUpdate):
         character.sticker_packs = _normalize_string_list(data.sticker_packs)
     if data.behavior_params:
         for key, value in data.behavior_params.items():
-            if hasattr(character, key):
-                setattr(character, key, value)
+            try:
+                # Handle nested behavior config fields (e.g., "timeline_hesitation_probability")
+                if "_" in key:
+                    parts = key.split("_", 1)
+                    module_name = parts[0]
+                    field_name = parts[1]
+                    
+                    # Check if this is a valid module in BehaviorConfig
+                    if hasattr(character.behavior, module_name):
+                        module_config = getattr(character.behavior, module_name)
+                        if hasattr(module_config, field_name):
+                            # Pydantic will validate the value type when setting
+                            setattr(module_config, field_name, value)
+                        else:
+                            logger.warning(f"Unknown behavior field: {module_name}.{field_name}")
+                # Handle top-level fields like sticker_packs (already handled above, but kept for completeness)
+                elif hasattr(character, key) and key not in PROTECTED_CHARACTER_FIELDS:
+                    setattr(character, key, value)
+            except (ValueError, TypeError) as e:
+                # Log validation errors but continue processing other fields
+                logger.warning(f"Invalid value for {key}: {e}")
 
     success = await character_service.update_character(character)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to update character")
 
-    # Update character configuration in active SessionClient instances
+    # Update character configuration in active SessionService instances
     from src.api import ws_routes
+
     updated_sessions = []
     for session_id, session_client in list(ws_routes.session_clients.items()):
-        if hasattr(session_client, 'character') and session_client.character.id == character_id:
+        if (
+            hasattr(session_client, "character")
+            and session_client.character.id == character_id
+        ):
             try:
-                # Update the character configuration in the SessionClient
+                # Update the character configuration in the SessionService
                 session_client.update_character(character)
                 # Send notification to frontend that config is updated
                 if ws_routes.ws_manager:
                     await ws_routes.ws_manager.send_toast(
-                        session_id,
-                        "角色配置已更新",
-                        level="info"
+                        session_id, "角色配置已更新", level="info"
                     )
                 updated_sessions.append(session_id)
             except Exception as e:
@@ -294,7 +338,7 @@ async def update_character(character_id: str, data: CharacterUpdate):
                     category=LogCategory.BEHAVIOR,
                 )
                 await broadcast_log_if_needed(log_entry)
-    
+
     if updated_sessions:
         log_entry = unified_logger.info(
             f"Character config updated for {len(updated_sessions)} active sessions",

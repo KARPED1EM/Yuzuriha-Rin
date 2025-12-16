@@ -8,8 +8,8 @@ from src.infrastructure.database.repositories import (
 )
 from src.services.messaging.message_service import MessageService
 from src.services.character.character_service import CharacterService
-from src.services.config.config_service import ConfigService
-from src.core.config import database_config
+from src.services.configurations.config_service import ConfigService
+from src.core.configs import database_config
 
 
 # Database connection singleton

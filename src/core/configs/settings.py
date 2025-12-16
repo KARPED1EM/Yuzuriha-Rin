@@ -1,6 +1,7 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from typing import Dict
+from src.core.models.constants import DEFAULT_USER_AVATAR, DEFAULT_ASSISTANT_AVATAR
 
 
 class AppConfig(BaseSettings):
@@ -35,8 +36,8 @@ class LLMDefaults(BaseSettings):
 
 
 class UIDefaults(BaseSettings):
-    avatar_user_path: str = "/static/images/avatar/user.webp"
-    avatar_assistant_path: str = "/static/images/avatar/rin.webp"
+    avatar_user_path: str = DEFAULT_USER_AVATAR
+    avatar_assistant_path: str = DEFAULT_ASSISTANT_AVATAR
 
     emotion_palette: Dict[str, Dict[str, int]] = Field(
         default_factory=lambda: {
@@ -81,7 +82,7 @@ class WebSocketConfig(BaseSettings):
 
 
 class DatabaseConfig(BaseSettings):
-    path: str = "data/rin_app.db"
+    path: str = "data/database/rin_app.db"
 
     class Config:
         env_file = ".env"

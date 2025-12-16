@@ -3,10 +3,10 @@ import logging
 from typing import List, Optional, Dict, Any
 from src.core.models.character import Character
 from src.core.models.session import Session
-from src.infrastructure.database.repositories.character_repo import CharacterRepository
-from src.infrastructure.database.repositories.session_repo import SessionRepository
+from src.core.interfaces.repositories import ICharacterRepository
+from src.core.interfaces.repositories import ISessionRepository
 from src.services.messaging.message_service import MessageService
-from src.services.config.config_service import ConfigService
+from src.services.configurations.config_service import ConfigService
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,8 @@ BUILTIN_ABAI = Character(
 class CharacterService:
     def __init__(
         self,
-        character_repo: CharacterRepository,
-        session_repo: SessionRepository,
+        character_repo: ICharacterRepository,
+        session_repo: ISessionRepository,
         message_service: MessageService,
         config_service: ConfigService,
     ):

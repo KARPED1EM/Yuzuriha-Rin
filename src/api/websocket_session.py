@@ -10,17 +10,17 @@ from src.infrastructure.database.repositories import (
 )
 from src.services.messaging.message_service import MessageService
 from src.services.character.character_service import CharacterService
-from src.services.config.config_service import ConfigService
-from src.services.session.session_client import SessionClient
+from src.services.configurations.config_service import ConfigService
+from src.services.session.session_service import SessionService
 from src.infrastructure.network.websocket_manager import WebSocketManager
 from src.core.models.message import MessageType
-from src.api.schemas import LLMConfig
-from src.infrastructure.utils.logger import (
+from src.core.schemas import LLMConfig
+from src.core.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
     LogCategory,
 )
-from src.core.config import database_config, llm_defaults
+from src.core.configs import database_config, llm_defaults
 from src.core.models.constants import DEFAULT_USER_ID
 from src.utils.url_utils import sanitize_base_url
 
@@ -35,7 +35,7 @@ message_service: Optional[MessageService] = None
 character_service: Optional[CharacterService] = None
 config_service: Optional[ConfigService] = None
 ws_manager: Optional[WebSocketManager] = None
-session_clients: Dict[str, SessionClient] = {}
+session_clients: Dict[str, SessionService] = {}
 
 
 async def initialize_services():
@@ -239,7 +239,7 @@ async def handle_send_message(session_id: str, user_id: str, data: Dict[str, Any
             content="消息已发出，但被对方拒收了。",
             metadata={},
         )
-        
+
         hint_event = {
             "type": "message",
             "data": {
@@ -380,7 +380,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
             await old_client.stop()
         session_clients.pop(session_id, None)
         log_entry = unified_logger.info(
-            f"SessionClient reinitialized for session {session_id}",
+            f"SessionService reinitialized for session {session_id}",
             category=LogCategory.WEBSOCKET,
         )
         await broadcast_log_if_needed(log_entry)
@@ -409,9 +409,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
     )
 
     resolved_model = (
-        llm_config_dict.get("model")
-        or config.get("llm_model")
-        or llm_defaults.model
+        llm_config_dict.get("model") or config.get("llm_model") or llm_defaults.model
     )
 
     resolved_api_key = llm_config_dict.get("api_key") or config.get("llm_api_key") or ""
@@ -432,7 +430,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
     normalized_base_url = sanitize_base_url(
         llm_config_dict.get("base_url") or config.get("llm_base_url")
     )
-    
+
     # Handle temperature - can be None (optional)
     resolved_temperature = llm_config_dict.get("temperature")
     if resolved_temperature is None:
@@ -442,7 +440,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
                 resolved_temperature = float(temp_str)
             except ValueError:
                 resolved_temperature = None
-    
+
     # Handle max_tokens - required, default 1000
     resolved_max_tokens = llm_config_dict.get("max_tokens")
     if resolved_max_tokens is None:
@@ -451,7 +449,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
             resolved_max_tokens = int(max_tokens_str)
         except ValueError:
             resolved_max_tokens = llm_defaults.max_tokens
-    
+
     llm_config = LLMConfig(
         protocol=resolved_protocol,
         api_key=resolved_api_key,
@@ -465,7 +463,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
         or config.get("user_nickname"),
     )
 
-    session_client = SessionClient(
+    session_client = SessionService(
         message_service=message_service,
         ws_manager=ws_manager,
         llm_config=llm_config,
@@ -476,7 +474,7 @@ async def handle_init_character(session_id: str, data: Dict[str, Any]):
     session_clients[session_id] = session_client
 
     log_entry = unified_logger.info(
-        f"SessionClient initialized for session {session_id} with character {character.name}",
+        f"SessionService initialized for session {session_id} with character {character.name}",
         category=LogCategory.WEBSOCKET,
     )
     await broadcast_log_if_needed(log_entry)
@@ -501,10 +499,10 @@ async def cleanup_resources():
     )
     await broadcast_log_if_needed(log_entry)
 
-    # Stop all SessionClient instances
+    # Stop all SessionService instances
     if session_clients:
         log_entry = unified_logger.info(
-            f"Stopping {len(session_clients)} SessionClient instances",
+            f"Stopping {len(session_clients)} SessionService instances",
             category=LogCategory.WEBSOCKET,
         )
         await broadcast_log_if_needed(log_entry)
@@ -513,13 +511,13 @@ async def cleanup_resources():
             try:
                 await session_client.stop()
                 log_entry = unified_logger.info(
-                    f"Stopped SessionClient for session {session_id}",
+                    f"Stopped SessionService for session {session_id}",
                     category=LogCategory.WEBSOCKET,
                 )
                 await broadcast_log_if_needed(log_entry)
             except Exception as e:
                 log_entry = unified_logger.error(
-                    f"Error stopping SessionClient for session {session_id}: {e}",
+                    f"Error stopping SessionService for session {session_id}: {e}",
                     category=LogCategory.WEBSOCKET,
                 )
                 await broadcast_log_if_needed(log_entry)

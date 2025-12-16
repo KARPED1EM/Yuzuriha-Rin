@@ -14,7 +14,7 @@ from src.services.behavior.typo import TypoInjector
 from src.services.behavior.pause import PausePredictor
 from src.services.behavior.timeline import TimelineBuilder
 from src.services.behavior.sticker import StickerSelector
-from src.infrastructure.utils.logger import unified_logger, LogCategory
+from src.core.utils.logger import unified_logger, LogCategory
 from src.core.models.character import Character
 
 
@@ -44,6 +44,7 @@ class BehaviorCoordinator:
         total_segments = len(segments)
 
         # Safety check: prevent excessive segments (likely due to malformed input)
+        # SINGLE SOURCE OF TRUTH for max segments safety limit
         MAX_SEGMENTS = 20
         if total_segments > MAX_SEGMENTS:
             unified_logger.error(

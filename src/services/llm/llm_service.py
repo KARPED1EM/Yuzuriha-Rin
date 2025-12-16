@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Tuple
 
 import httpx
 
-from src.api.schemas import ChatMessage, LLMConfig
-from src.infrastructure.utils.logger import (
+from src.core.schemas import ChatMessage, LLMConfig
+from src.core.utils.logger import (
     unified_logger,
     broadcast_log_if_needed,
     LogCategory,
@@ -72,9 +72,9 @@ class LLMStructuredResponse:
             self.tool_calls = []
 
 
-class LLMClient:
+class LLMService:
     """
-    Protocol-based LLM client. Backend is no longer sensitive to specific service
+    Protocol-based LLM service. Backend is no longer sensitive to specific service
     providers; it only provides differentiated support based on Protocol.
     
     Supported protocols:

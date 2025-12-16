@@ -1,7 +1,7 @@
 import random
 from pathlib import Path
 from typing import Tuple, Dict, List, Optional, Any
-from src.infrastructure.utils.logger import unified_logger, LogCategory
+from src.core.utils.logger import unified_logger, LogCategory
 
 
 class IntentPredictor:
@@ -135,11 +135,15 @@ class IntentPredictor:
 
 
 class StickerSelector:
+    """
+    Sticker selection service - SINGLE SOURCE OF TRUTH for sticker confidence thresholds
+    These thresholds determine when to send stickers based on emotion detection confidence
+    """
     CONFIDENCE_THRESHOLDS = {
-        "positive": 0.7,
-        "neutral": 0.8,
-        "negative": 0.9,
-        "default": 0.8,
+        "positive": 0.7,  # Threshold for positive emotions
+        "neutral": 0.8,   # Threshold for neutral emotions  
+        "negative": 0.9,  # Threshold for negative emotions
+        "default": 0.8,   # Default threshold
     }
 
     POSITIVE_EMOTIONS = ["happy", "excited", "playful", "affectionate", "surprised"]
@@ -303,7 +307,7 @@ class StickerSelector:
             )
             return False, "", log_entry
 
-        sticker_base = Path(__file__).parent.parent.parent.parent / "data" / "stickers"
+        sticker_base = Path(__file__).parent.parent.parent.parent / "assets" / "stickers"
 
         available_packs = []
         for pack in sticker_packs:

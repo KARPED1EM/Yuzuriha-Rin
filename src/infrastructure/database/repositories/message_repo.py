@@ -2,12 +2,13 @@ import json
 import logging
 from typing import List, Optional
 from src.core.models.message import Message, MessageType
+from src.core.interfaces.repositories import IMessageRepository
 from src.infrastructure.database.repositories.base import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class MessageRepository(BaseRepository[Message]):
+class MessageRepository(BaseRepository[Message], IMessageRepository):
     async def get_by_id(self, id: str) -> Optional[Message]:
         try:
             with self.conn_mgr.get_connection() as conn:

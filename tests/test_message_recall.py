@@ -9,7 +9,7 @@ This test verifies that:
 import pytest
 from datetime import datetime, timezone
 from src.core.models.message import Message, MessageType
-from src.services.session.session_client import SessionClient
+from src.services.session.session_service import SessionService
 from src.api.schemas import LLMConfig, ChatMessage
 from src.core.models.character import Character
 
@@ -31,7 +31,7 @@ class TestMessageRecall:
     """Test message recall handling."""
     
     def create_session_client(self, messages):
-        """Create a SessionClient with mocked dependencies."""
+        """Create a SessionService with mocked dependencies."""
         mock_service = MockMessageService()
         mock_service.set_messages(messages)
         
@@ -96,7 +96,7 @@ class TestMessageRecall:
             emoticon_packs=[]
         )
         
-        client = SessionClient(
+        client = SessionService(
             message_service=mock_service,
             ws_manager=None,
             llm_config=llm_config,

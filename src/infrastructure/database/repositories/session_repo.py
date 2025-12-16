@@ -2,12 +2,13 @@ import logging
 from typing import List, Optional
 from datetime import datetime
 from src.core.models.session import Session
+from src.core.interfaces.repositories import ISessionRepository
 from src.infrastructure.database.repositories.base import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class SessionRepository(BaseRepository[Session]):
+class SessionRepository(BaseRepository[Session], ISessionRepository):
     async def get_by_id(self, id: str) -> Optional[Session]:
         try:
             with self.conn_mgr.get_connection() as conn:
