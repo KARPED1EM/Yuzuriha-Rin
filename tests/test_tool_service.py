@@ -16,7 +16,7 @@ class TestToolService:
         self.mock_message_service = MagicMock(spec=MessageService)
         self.tool_service = ToolService(self.mock_message_service)
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_get_avatar_descriptions(self):
         """Test getting avatar descriptions."""
         result = await self.tool_service.get_avatar_descriptions(
@@ -27,7 +27,7 @@ class TestToolService:
         assert "character_avatar_description" in result
         assert "user_avatar_description" in result
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_get_recallable_messages(self):
         """Test getting recallable messages within 2 minutes."""
         session_id = "test-session"
@@ -79,7 +79,7 @@ class TestToolService:
         assert len(result["recallable_messages"]) == 1
         assert result["recallable_messages"][0]["id"] == "msg-1"
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_recall_message_by_id_success(self):
         """Test successfully recalling a message."""
         session_id = "test-session"
@@ -118,7 +118,7 @@ class TestToolService:
         assert result["success"] is True
         assert result["recalled_message_id"] == message_id
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_recall_message_by_id_too_old(self):
         """Test recalling a message that's too old (>2 minutes)."""
         session_id = "test-session"
@@ -146,7 +146,7 @@ class TestToolService:
         assert result["success"] is False
         assert "older than 2 minutes" in result["error"]
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_block_user(self):
         """Test blocking a user."""
         session_id = "test-session"
@@ -172,7 +172,7 @@ class TestToolService:
         assert result["blocked"] is True
         assert "blocked_message_id" in result
 
-    @pytest.mark.asyncio
+    @pytest.mark.anyio
     async def test_execute_tool_unknown(self):
         """Test executing an unknown tool."""
         result = await self.tool_service.execute_tool(
