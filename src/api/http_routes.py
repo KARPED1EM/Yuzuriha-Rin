@@ -289,8 +289,11 @@ async def update_character(character_id: str, data: CharacterUpdate):
     if data.behavior_params:
         for key, value in data.behavior_params.items():
             try:
+                # Handle sticker_packs as a special case (top-level Character field)
+                if key == "sticker_packs":
+                    character.sticker_packs = _normalize_string_list(value)
                 # Handle nested behavior config fields (e.g., "timeline_hesitation_probability")
-                if "_" in key:
+                elif "_" in key:
                     parts = key.split("_", 1)
                     module_name = parts[0]
                     field_name = parts[1]
@@ -303,7 +306,7 @@ async def update_character(character_id: str, data: CharacterUpdate):
                             setattr(module_config, field_name, value)
                         else:
                             logger.warning(f"Unknown behavior field: {module_name}.{field_name}")
-                # Handle top-level fields like sticker_packs (already handled above, but kept for completeness)
+                # Handle top-level fields without underscores
                 elif hasattr(character, key) and key not in PROTECTED_CHARACTER_FIELDS:
                     setattr(character, key, value)
             except (ValueError, TypeError) as e:
