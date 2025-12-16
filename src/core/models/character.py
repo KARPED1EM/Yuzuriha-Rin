@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel, Field, model_validator
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 from src.core.models.behavior import BehaviorConfig
 
@@ -11,6 +11,9 @@ class Character(BaseModel):
     This model IS the single source of truth for character defaults.
     All default values are defined in the nested BehaviorConfig model.
     No separate config classes needed - models define structure AND defaults.
+    
+    Accepts both nested (behavior.timeline.field) and flattened (timeline_field) formats
+    for backward compatibility with database and API layers.
     """
     id: str
     name: str
@@ -25,6 +28,75 @@ class Character(BaseModel):
     # Metadata
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    @model_validator(mode='before')
+    @classmethod
+    def map_flattened_fields(cls, data: Any) -> Any:
+        """
+        Transform flattened behavior fields (e.g., timeline_hesitation_probability)
+        into nested structure (behavior.timeline.hesitation_probability).
+        
+        This enables backward compatibility with the database layer and API
+        that use flattened field names.
+        """
+        if not isinstance(data, dict):
+            return data
+        
+        # Extract existing behavior dict if present
+        behavior_dict = {}
+        if 'behavior' in data:
+            existing_behavior = data['behavior']
+            if isinstance(existing_behavior, BehaviorConfig):
+                # Convert BehaviorConfig instance to dict
+                behavior_dict = existing_behavior.model_dump()
+            elif isinstance(existing_behavior, dict):
+                behavior_dict = existing_behavior.copy()
+        
+        # Cache valid module names for performance
+        valid_modules = set(BehaviorConfig.model_fields.keys())
+        
+        # Extract flattened fields and group by module
+        modules: Dict[str, Dict[str, Any]] = {}
+        remaining_data = {}
+        
+        for key, value in data.items():
+            if '_' in key:
+                # Split into module and field name
+                parts = key.split('_', 1)
+                module_name = parts[0]
+                field_name = parts[1]
+                
+                # Check if this is a valid behavior module
+                if module_name in valid_modules:
+                    if module_name not in modules:
+                        modules[module_name] = {}
+                    modules[module_name][field_name] = value
+                else:
+                    # Not a behavior field, keep in remaining data
+                    remaining_data[key] = value
+            else:
+                # No underscore, not a flattened field
+                remaining_data[key] = value
+        
+        # Merge extracted modules into behavior dict
+        for module_name, module_fields in modules.items():
+            if module_name not in behavior_dict:
+                # Create new module dict with extracted fields
+                behavior_dict[module_name] = module_fields
+            elif isinstance(behavior_dict[module_name], dict):
+                # Merge new fields with existing dict
+                behavior_dict[module_name].update(module_fields)
+            else:
+                # Module is an instantiated object - preserve existing values
+                # This edge case handles mixed nested/flattened input
+                existing_data = behavior_dict[module_name].model_dump() if hasattr(behavior_dict[module_name], 'model_dump') else {}
+                behavior_dict[module_name] = {**existing_data, **module_fields}
+        
+        # Add behavior dict to remaining data
+        if behavior_dict or modules:
+            remaining_data['behavior'] = behavior_dict
+        
+        return remaining_data
     
     # Backward compatibility properties - deprecated, use behavior.* instead
     @property
@@ -206,3 +278,23 @@ class Character(BaseModel):
     @property
     def sticker_confidence_threshold_negative(self) -> float:
         return self.behavior.sticker.confidence_threshold_negative
+    
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
+        """
+        Override model_dump to include flattened behavior fields for backward compatibility.
+        
+        This ensures the frontend receives both the nested 'behavior' structure and
+        flattened fields (e.g., timeline_hesitation_probability) that it expects.
+        """
+        # Get base model dump
+        data = super().model_dump(**kwargs)
+        
+        # Add flattened fields from behavior modules
+        if 'behavior' in data and isinstance(data['behavior'], dict):
+            for module_name, module_data in data['behavior'].items():
+                if isinstance(module_data, dict):
+                    for field_name, field_value in module_data.items():
+                        flat_key = f"{module_name}_{field_name}"
+                        data[flat_key] = field_value
+        
+        return data
