@@ -3,8 +3,6 @@
 .pytest_cache/
 **/__pycache__/
 
-assets/models/intent_predictor/model.safetensors
-
 *.db
-
 uv.lock
+assets/models/intent_predictor/model.safetensors
