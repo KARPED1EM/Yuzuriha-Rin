@@ -125,7 +125,7 @@ export function showChatSession(sessionId, scrollToBottomOnEnter) {
       renderChatSession(sessionId, { scrollOnEnter: scrollToBottomOnEnter });
     }
     if (scrollToBottomOnEnter) {
-      scrollToBottom(activeMessageContainer);
+      scrollToBottom(activeMessageContainer, { behavior: "instant" });
       markAllRead(sessionId);
       updateNewMessageIndicator(sessionId, activeMessageContainer);
     }
@@ -137,7 +137,7 @@ export function showChatSession(sessionId, scrollToBottomOnEnter) {
 /**
  * Render (or re-render) a specific session's messages container.
  * @param {string} sessionId
- * @param {{scrollOnEnter?: boolean}} opts
+ * @param {{scrollOnEnter?: boolean, forceScrollBehavior?: "instant" | "smooth"}} opts
  */
 export function renderChatSession(sessionId, opts = {}) {
   const container = ensureChatSessionContainer(sessionId);
@@ -237,13 +237,16 @@ export function renderChatSession(sessionId, opts = {}) {
     applyEmotionForSession(sessionId, latestEmotionMap);
 
     if (opts.scrollOnEnter) {
-      scrollToBottom(container);
+      scrollToBottom(container, { behavior: "instant" });
       markAllRead(sessionId);
       updateNewMessageIndicator(sessionId, container);
     } else if (wasAtBottom) {
       scrollToBottom(container);
       markAllRead(sessionId);
       updateNewMessageIndicator(sessionId, container);
+    } else if (opts.forceScrollBehavior) {
+      scrollToBottom(container, { behavior: opts.forceScrollBehavior });
+      requestAnimationFrame(() => handleScroll(container));
     } else {
       // User is scrolled up - do NOT adjust scroll position, keep it exactly where it is
       // After render completes, check what's visible and mark as read
@@ -667,15 +670,21 @@ function getUnreadCount(sessionId) {
 }
 
 function isAtBottom(container) {
-  return (
-    container.scrollHeight - container.scrollTop - container.clientHeight < 6
-  );
+  const distanceFromBottom =
+    container.scrollHeight - container.scrollTop - container.clientHeight;
+  return Math.abs(distanceFromBottom) <= 3;
 }
 
-function scrollToBottom(container) {
+/**
+ * Scroll helpers default to smooth animations, but allow instant jumps where needed.
+ * @param {HTMLElement} container
+ * @param {{behavior?: "instant" | "smooth"}} [opts]
+ */
+function scrollToBottom(container, opts = {}) {
+  const behavior = opts.behavior === "instant" ? "auto" : "smooth";
   container.scrollTo({
     top: container.scrollHeight,
-    behavior: 'smooth'
+    behavior,
   });
 }
 

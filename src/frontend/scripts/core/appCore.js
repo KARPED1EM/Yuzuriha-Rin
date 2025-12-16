@@ -249,7 +249,14 @@ export function createApp() {
         }
 
         ensureChatSessionContainer(msg.session_id);
-        renderChatSession(msg.session_id, { scrollOnEnter: false });
+        const shouldForceUserScroll =
+          msg.sender_id === "user" &&
+          msg.session_id === state.activeSessionId &&
+          !isChatViewHidden();
+        renderChatSession(msg.session_id, {
+          scrollOnEnter: false,
+          forceScrollBehavior: shouldForceUserScroll ? "smooth" : undefined,
+        });
         if (msg.session_id !== state.activeSessionId || isChatViewHidden()) {
           renderSessionListView();
         }
