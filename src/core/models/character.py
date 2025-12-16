@@ -55,11 +55,20 @@ class Character(BaseModel):
         # Cache valid module names for performance
         valid_modules = set(BehaviorConfig.model_fields.keys())
         
+        # Fields that should not be treated as flattened behavior fields
+        # even if they contain underscores matching module names
+        excluded_fields = {'sticker_packs'}
+        
         # Extract flattened fields and group by module
         modules: Dict[str, Dict[str, Any]] = {}
         remaining_data = {}
         
         for key, value in data.items():
+            # Skip excluded fields - they are top-level Character fields
+            if key in excluded_fields:
+                remaining_data[key] = value
+                continue
+                
             if '_' in key:
                 # Split into module and field name
                 parts = key.split('_', 1)

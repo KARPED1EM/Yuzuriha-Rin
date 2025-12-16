@@ -615,10 +615,6 @@ function renderBehaviorField(character, field, readonly) {
 async function initTagInputs(modal, character, fields, readonly) {
   const availablePacks = await getStickerPacks();
   
-  console.log('[DEBUG] initTagInputs called with character:', character);
-  console.log('[DEBUG] character.sticker_packs:', character?.sticker_packs);
-  console.log('[DEBUG] availablePacks:', availablePacks);
-  
   fields
     .filter((f) => String(f.type || "").startsWith("list["))
     .forEach((f) => {
@@ -627,8 +623,6 @@ async function initTagInputs(modal, character, fields, readonly) {
       );
       if (!container) return;
       const initial = Array.isArray(character?.[f.key]) ? character[f.key] : [];
-      
-      console.log(`[DEBUG] Field ${f.key}: initial value =`, initial);
       
       // Pass available options for sticker_packs field
       const options = f.key === "sticker_packs" ? availablePacks : [];
