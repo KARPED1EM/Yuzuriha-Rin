@@ -5,9 +5,6 @@
 
   <h1>𝒀𝒖𝒛𝒖𝒓𝒊𝒉𝒂 𝑹𝒊𝒏</h1>
   <p>Present the LLM chat in a WeChat-like style</p>
-
-  <br/>
-
   <h3>English | <a href="README.zh-CN.md">简体中文</a></h3>
 
   <br/><br/>

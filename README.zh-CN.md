@@ -5,9 +5,6 @@
 
   <h1>Yuzuriha Rin</h1>
   <p>让 LLM 对话以微信的方式呈现</p>
-
-  <br/>
-
   <h3><a href="README.md">English</a> | 简体中文</h3>
 
   <br/><br/>
