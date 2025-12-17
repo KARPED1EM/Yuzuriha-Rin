@@ -101,34 +101,44 @@ function buildGlowGradient(colors) {
     return `radial-gradient(ellipse at 50% 50%, ${c} 0%, transparent 70%)`;
   }
 
-  if (stops.length === 2) {
-    // Two colors: diagonal gradient with smooth blending
-    return `linear-gradient(135deg, ${stops[0]} 0%, ${stops[1]} 100%)`;
-  }
+  // Horizontal gradient (left to right) for all multi-color cases
+  // Background element is 300% size, viewport is center 1/3 (33.33% - 66.67%)
+  // Add padding on both ends to ensure coverage during rotation
+  const viewportStart = 25;  // Start before viewport center
+  const viewportEnd = 75;    // End after viewport center
+  const range = viewportEnd - viewportStart;
 
-  // Multiple colors: create smooth flowing gradient
-  // Distribute colors evenly across the gradient
   const gradientStops = colors.map((_, i) => {
-    const pos = (i * 100) / colors.length;
+    const pos = viewportStart + (i * range) / (colors.length - 1);
     return `${stops[i]} ${pos}%`;
   });
-  
-  // Complete the loop for seamless animation
-  gradientStops.push(`${stops[0]} 100%`);
 
-  // Use diagonal gradient for dynamic flow
-  return `linear-gradient(135deg, ${gradientStops.join(", ")})`;
+  // Extend gradient to edges for full coverage
+  const firstColor = stops[0];
+  const lastColor = stops[stops.length - 1];
+
+  // Use linear gradient with extended edges
+  return `linear-gradient(to right, ${firstColor} 0%, ${gradientStops.join(", ")}, ${lastColor} 100%)`;
 }
 
-/** Gentle hue ordering */
+/** Gentle hue ordering - improved for smoother transitions */
 function orderColorsGently(input) {
-  const remaining = input.slice();
-  remaining.sort((a, b) => a.a - b.a);
+  if (input.length <= 1) return input;
 
-  const start = remaining.shift();
-  if (!start) return [];
+  const remaining = input.slice();
+
+  // Find the color with the most extreme hue (best starting point for circular arrangement)
+  let startIdx = 0;
+  for (let i = 1; i < remaining.length; i++) {
+    if (remaining[i].h < remaining[startIdx].h) {
+      startIdx = i;
+    }
+  }
+
+  const start = remaining.splice(startIdx, 1)[0];
   const ordered = [start];
 
+  // Greedy nearest-neighbor algorithm for smooth transitions
   while (remaining.length) {
     const last = ordered[ordered.length - 1];
     let bestIdx = 0;
@@ -144,16 +154,34 @@ function orderColorsGently(input) {
     ordered.push(remaining.splice(bestIdx, 1)[0]);
   }
 
+  // Try to optimize by checking if reversing improves the loop closure
+  const firstToLast = colorDistance(ordered[0], ordered[ordered.length - 1]);
+  ordered.reverse();
+  const reversedFirstToLast = colorDistance(ordered[0], ordered[ordered.length - 1]);
+
+  if (reversedFirstToLast > firstToLast) {
+    ordered.reverse(); // Revert if original was better
+  }
+
   return ordered;
 }
 
-/** HSL distance */
+/** HSL distance - improved weights for more natural transitions */
 function colorDistance(a, b) {
+  // Calculate hue distance considering circular nature (0° = 360°)
   const dhRaw = Math.abs(a.h - b.h);
   const dh = Math.min(dhRaw, 360 - dhRaw) / 180;
+
+  // Saturation and lightness differences
   const ds = Math.abs(a.s - b.s) / 100;
   const dl = Math.abs(a.l - b.l) / 100;
-  return dh * 1.4 + ds * 0.7 + dl * 1.0;
+
+  // Alpha difference (less important)
+  const da = Math.abs(a.a - b.a);
+
+  // Weighted combination - prioritize hue for color wheel harmony
+  // Higher hue weight ensures colors flow naturally around the color wheel
+  return dh * 2.0 + ds * 0.5 + dl * 0.8 + da * 0.3;
 }
 
 function clamp(v, min, max) {

@@ -53,53 +53,52 @@ textarea {
 .app-container::after {
     content: "";
     position: fixed;
-    inset: 0;
+    /* Calculate size to cover viewport at any rotation angle
+       Diagonal coverage requires √2 ≈ 1.414 times the viewport
+       Use 300% (3x) to ensure complete coverage with margin */
+    top: 50%;
+    left: 50%;
+    width: 300%;
+    height: 300%;
     z-index: 0;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.8s ease;
-    will-change: background-size, background-position, opacity;
+    will-change: transform, opacity;
+    /* Center the element at viewport center using transform */
+    transform-origin: center center;
+    transform: translate(-50%, -50%);
 }
 
 .app-container::before {
     background: var(--emotion-gradient-1);
     opacity: var(--emotion-opacity-1);
-    animation: emotionFlow1 20s ease-in-out infinite;
+    animation: emotionRotate1 60s linear infinite;
 }
 
 .app-container::after {
     background: var(--emotion-gradient-2);
     opacity: var(--emotion-opacity-2);
-    animation: emotionFlow2 20s ease-in-out infinite;
+    animation: emotionRotate2 60s linear infinite;
 }
 
-@keyframes emotionFlow1 {
-    0%, 100% {
-        background-size: 150% 150%;
-        background-position: 0% 0%;
+/* Slow clockwise rotation for smooth, continuous display of all emotions */
+@keyframes emotionRotate1 {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
     }
-    33% {
-        background-size: 180% 180%;
-        background-position: 100% 50%;
-    }
-    66% {
-        background-size: 165% 165%;
-        background-position: 50% 100%;
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
     }
 }
 
-@keyframes emotionFlow2 {
-    0%, 100% {
-        background-size: 165% 165%;
-        background-position: 100% 100%;
+/* Counter-clockwise rotation for layered depth effect */
+@keyframes emotionRotate2 {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1.05);
     }
-    33% {
-        background-size: 150% 150%;
-        background-position: 0% 50%;
-    }
-    66% {
-        background-size: 175% 175%;
-        background-position: 50% 0%;
+    100% {
+        transform: translate(-50%, -50%) rotate(-360deg) scale(1.05);
     }
 }
 
